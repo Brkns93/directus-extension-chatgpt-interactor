@@ -1,0 +1,46 @@
+{
+	"name": "directus-extension-chatgpt-interactor",
+	"description": "Directus extension for ChatGPT operations with component-based parameter inputs",
+	"icon": "smart_toy",
+	"version": "1.0.0",
+	"license": "MIT",
+	"keywords": [
+		"directus",
+		"directus-extension",
+		"directus-extension-operation",
+		"chatgpt",
+		"openai",
+		"ai"
+	],
+	"type": "module",
+	"files": [
+		"dist"
+	],
+	"directus:extension": {
+		"type": "operation",
+		"path": {
+			"app": "dist/app.js",
+			"api": "dist/api.js"
+		},
+		"source": {
+			"app": "src/app.ts",
+			"api": "src/api.ts"
+		},
+		"host": "^10.10.0"
+	},
+	"scripts": {
+		"build": "directus-extension build",
+		"dev": "directus-extension build -w --no-minify",
+		"link": "directus-extension link",
+		"validate": "directus-extension validate"
+	},
+	"dependencies": {
+		"openai": "^4.67.3"
+	},
+	"devDependencies": {
+		"@directus/extensions-sdk": "13.1.0",
+		"@types/node": "^22.15.21",
+		"typescript": "^5.8.3",
+		"vue": "^3.5.14"
+	}
+}
