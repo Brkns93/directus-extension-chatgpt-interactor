@@ -3,29 +3,31 @@ import OpenAI from 'openai';
 
 type Options = {
 	api_key: string;
-	operation_type: 'chat_completion' | 'completion' | 'image_generation' | 'audio_transcription' | 'audio_translation' | 'embeddings' | 'moderation' | 'list_models';
+	operation_type: 'text_generation' | 'image_generation' | 'web_search' | 'file_search' | 'code_interpreter' | 'embeddings' | 'moderation' | 'list_models';
 	model?: string;
 	system_message?: string;
-	message?: string;
-	prompt?: string;
+	user_message?: string;
 	image_prompt?: string;
-	audio_file?: string;
+	search_query?: string;
+	vector_store_ids?: string[];
+	code_input?: string;
+	text_input?: string;
 	temperature?: number;
-	max_tokens?: number;
+	max_output_tokens?: number;
 	top_p?: number;
 	frequency_penalty?: number;
 	presence_penalty?: number;
 	image_size?: '1024x1024' | '1792x1024' | '1024x1792' | '512x512' | '256x256';
 	image_quality?: 'standard' | 'hd';
 	image_style?: 'vivid' | 'natural';
-	audio_language?: string;
-	response_format?: 'json' | 'text' | 'srt' | 'vtt';
 	store_response?: boolean;
+	previous_response_id?: string;
 };
 
 interface SuccessResult {
 	success: true;
 	data: Record<string, any>;
+	response_id?: string;
 }
 
 interface ErrorResult {
@@ -59,27 +61,28 @@ function getErrorType(error: unknown): string {
 
 export default defineOperationApi<Options>({
 	id: 'chatgpt-interactor',
-	handler: async (options, { services, database, accountability, getSchema }): Promise<OperationResult> => {
+	handler: async (options): Promise<OperationResult> => {
 		const {
 			api_key,
 			operation_type,
-			model = 'gpt-3.5-turbo',
+			model = 'gpt-4o-mini',
 			system_message,
-			message,
-			prompt,
+			user_message,
 			image_prompt,
-			audio_file,
+			search_query,
+			vector_store_ids,
+			code_input,
+			text_input,
 			temperature = 1,
-			max_tokens = 1000,
+			max_output_tokens = 1000,
 			top_p = 1,
 			frequency_penalty = 0,
 			presence_penalty = 0,
 			image_size = '1024x1024',
 			image_quality = 'standard',
 			image_style = 'vivid',
-			audio_language,
-			response_format = 'json',
 			store_response = true,
+			previous_response_id,
 		} = options;
 
 		if (!api_key) {
@@ -94,71 +97,51 @@ export default defineOperationApi<Options>({
 
 		try {
 			switch (operation_type) {
-				case 'chat_completion':
-					if (!message) {
-						throw new Error('Message is required for chat completion');
+				case 'text_generation':
+					if (!user_message) {
+						throw new Error('User message is required for text generation');
 					}
 
-					const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+					const input = [];
 					
 					if (system_message) {
-						messages.push({
-							role: 'system',
+						input.push({
+							role: 'system' as const,
 							content: system_message,
 						});
 					}
 					
-					messages.push({
-						role: 'user',
-						content: message,
+					input.push({
+						role: 'user' as const,
+						content: user_message,
 					});
 
-					const chatParams: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
+					const responseParams: any = {
 						model,
-						messages,
+						input,
 						temperature,
-						max_tokens,
+						max_output_tokens,
 						top_p,
 						frequency_penalty,
 						presence_penalty,
+						store: store_response,
 					};
 
-					const chatCompletion = await openai.chat.completions.create(chatParams);
-					result = {
-						success: true,
-						data: {
-							content: chatCompletion.choices[0]?.message?.content || '',
-							model: chatCompletion.model,
-							usage: chatCompletion.usage,
-							finish_reason: chatCompletion.choices[0]?.finish_reason,
-						},
-					};
-					break;
-
-				case 'completion':
-					if (!prompt) {
-						throw new Error('Prompt is required for text completion');
+					if (previous_response_id) {
+						responseParams.previous_response_id = previous_response_id;
 					}
 
-					const completionParams: OpenAI.Completions.CompletionCreateParams = {
-						model,
-						prompt,
-						temperature,
-						max_tokens,
-						top_p,
-						frequency_penalty,
-						presence_penalty,
-					};
-
-					const textCompletion = await openai.completions.create(completionParams);
+					const textResponse = await openai.responses.create(responseParams);
+					
 					result = {
 						success: true,
 						data: {
-							content: textCompletion.choices[0]?.text || '',
-							model: textCompletion.model,
-							usage: textCompletion.usage,
-							finish_reason: textCompletion.choices[0]?.finish_reason,
+							content: textResponse.output_text || '',
+							model: textResponse.model,
+							usage: textResponse.usage,
+							finish_reason: textResponse.status,
 						},
+						response_id: textResponse.id,
 					};
 					break;
 
@@ -167,118 +150,170 @@ export default defineOperationApi<Options>({
 						throw new Error('Image description is required for image generation');
 					}
 
-					const imageParams: OpenAI.Images.ImageGenerateParams = {
-						model: model as 'dall-e-2' | 'dall-e-3',
-						prompt: image_prompt,
-						size: image_size,
-						quality: image_quality,
-						style: image_style,
-						n: 1,
+					const imageResponseParams: any = {
+						model: model.includes('dall-e') ? model : 'gpt-4o',
+						input: [
+							{
+								role: 'user' as const,
+								content: image_prompt,
+							}
+						],
+						tools: [
+							{
+								type: 'image_generation' as const,
+								size: image_size,
+								quality: image_quality,
+								style: image_style,
+							}
+						],
+						store: store_response,
 					};
 
-					const imageResponse = await openai.images.generate(imageParams);
+					if (previous_response_id) {
+						imageResponseParams.previous_response_id = previous_response_id;
+					}
+
+					const imageResponse = await openai.responses.create(imageResponseParams);
+					
 					result = {
 						success: true,
 						data: {
-							images: imageResponse.data,
-							model,
+							images: imageResponse.output || [],
+							model: imageResponse.model,
+							usage: imageResponse.usage,
 						},
+						response_id: imageResponse.id,
 					};
 					break;
 
-				case 'audio_transcription':
-					if (!audio_file) {
-						throw new Error('Audio file is required for transcription');
+				case 'web_search':
+					if (!search_query) {
+						throw new Error('Search query is required for web search');
 					}
 
-					try {
-						// Get file from Directus
-						const { FilesService } = services;
-						const filesService = new FilesService({
-							schema: await getSchema(),
-							accountability,
-						});
+					const webSearchParams: any = {
+						model,
+						input: [
+							{
+								role: 'user' as const,
+								content: search_query,
+							}
+						],
+						tools: [
+							{
+								type: 'web_search_preview' as const,
+							}
+						],
+						store: store_response,
+					};
 
-						const file = await filesService.readOne(audio_file);
-						if (!file) {
-							throw new Error('Audio file not found');
-						}
-
-						// Create a File object for the OpenAI API
-						const fileBuffer = await filesService.readOne(audio_file, { 
-							transformationParams: {} 
-						});
-
-						const transcriptionParams: OpenAI.Audio.Transcriptions.TranscriptionCreateParams = {
-							file: new File([fileBuffer], file.filename_download || 'audio.mp3'),
-							model: 'whisper-1',
-							language: audio_language,
-							response_format: response_format as 'json' | 'text' | 'srt' | 'vtt',
-						};
-
-						const transcription = await openai.audio.transcriptions.create(transcriptionParams);
-						result = {
-							success: true,
-							data: {
-								transcription,
-								model: 'whisper-1',
-							},
-						};
-					} catch (error: unknown) {
-						throw new Error(`Audio transcription failed: ${getErrorMessage(error)}`);
+					if (previous_response_id) {
+						webSearchParams.previous_response_id = previous_response_id;
 					}
+
+					const webResponse = await openai.responses.create(webSearchParams);
+					
+					result = {
+						success: true,
+						data: {
+							content: webResponse.output_text || '',
+							model: webResponse.model,
+							usage: webResponse.usage,
+						},
+						response_id: webResponse.id,
+					};
 					break;
 
-				case 'audio_translation':
-					if (!audio_file) {
-						throw new Error('Audio file is required for translation');
+				case 'file_search':
+					if (!search_query) {
+						throw new Error('Search query is required for file search');
 					}
 
-					try {
-						// Get file from Directus
-						const { FilesService } = services;
-						const filesService = new FilesService({
-							schema: await getSchema(),
-							accountability,
-						});
-
-						const file = await filesService.readOne(audio_file);
-						if (!file) {
-							throw new Error('Audio file not found');
-						}
-
-						// Create a File object for the OpenAI API
-						const fileBuffer = await filesService.readOne(audio_file, { 
-							transformationParams: {} 
-						});
-
-						const translationParams: OpenAI.Audio.Translations.TranslationCreateParams = {
-							file: new File([fileBuffer], file.filename_download || 'audio.mp3'),
-							model: 'whisper-1',
-							response_format: response_format as 'json' | 'text' | 'srt' | 'vtt',
-						};
-
-						const translation = await openai.audio.translations.create(translationParams);
-						result = {
-							success: true,
-							data: {
-								translation,
-								model: 'whisper-1',
-							},
-						};
-					} catch (error: unknown) {
-						throw new Error(`Audio translation failed: ${getErrorMessage(error)}`);
+					if (!vector_store_ids || vector_store_ids.length === 0) {
+						throw new Error('Vector store IDs are required for file search');
 					}
+
+					const fileSearchParams: any = {
+						model,
+						input: [
+							{
+								role: 'user' as const,
+								content: search_query,
+							}
+						],
+						tools: [
+							{
+								type: 'file_search' as const,
+								vector_store_ids: vector_store_ids,
+							}
+						],
+						store: store_response,
+					};
+
+					if (previous_response_id) {
+						fileSearchParams.previous_response_id = previous_response_id;
+					}
+
+					const fileResponse = await openai.responses.create(fileSearchParams);
+					
+					result = {
+						success: true,
+						data: {
+							content: fileResponse.output_text || '',
+							model: fileResponse.model,
+							usage: fileResponse.usage,
+						},
+						response_id: fileResponse.id,
+					};
+					break;
+
+				case 'code_interpreter':
+					if (!code_input) {
+						throw new Error('Code input is required for code interpretation');
+					}
+
+					const codeParams: any = {
+						model,
+						input: [
+							{
+								role: 'user' as const,
+								content: code_input,
+							}
+						],
+						tools: [
+							{
+								type: 'code_interpreter' as const,
+							}
+						],
+						store: store_response,
+					};
+
+					if (previous_response_id) {
+						codeParams.previous_response_id = previous_response_id;
+					}
+
+					const codeResponse = await openai.responses.create(codeParams);
+					
+					result = {
+						success: true,
+						data: {
+							content: codeResponse.output_text || '',
+							output: codeResponse.output || [],
+							model: codeResponse.model,
+							usage: codeResponse.usage,
+						},
+						response_id: codeResponse.id,
+					};
 					break;
 
 				case 'embeddings':
-					if (!prompt) {
+					if (!text_input) {
 						throw new Error('Text is required for embeddings');
 					}
 
 					const embeddingParams: OpenAI.Embeddings.EmbeddingCreateParams = {
-						model,
-						input: prompt,
+						model: model.includes('embedding') ? model : 'text-embedding-3-small',
+						input: text_input,
 					};
 
 					const embedding = await openai.embeddings.create(embeddingParams);
@@ -293,12 +328,12 @@ export default defineOperationApi<Options>({
 					break;
 
 				case 'moderation':
-					if (!prompt) {
+					if (!text_input) {
 						throw new Error('Text is required for moderation');
 					}
 
 					const moderationParams: OpenAI.Moderations.ModerationCreateParams = {
-						input: prompt,
+						input: text_input,
 					};
 
 					const moderation = await openai.moderations.create(moderationParams);
@@ -327,12 +362,12 @@ export default defineOperationApi<Options>({
 			}
 
 			// Log successful operation
-			console.log(`ChatGPT operation completed: ${operation_type} with model: ${model}`);
+			console.log(`OpenAI operation completed: ${operation_type} with model: ${model}`);
 
 			return store_response ? result : { success: true, data: {} };
 
 		} catch (error: unknown) {
-			console.error('ChatGPT operation failed:', error);
+			console.error('OpenAI operation failed:', error);
 			
 			return {
 				success: false,

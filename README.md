@@ -1,36 +1,50 @@
-# Directus ChatGPT Interactor Extension
+# Directus OpenAI Interactor Extension
 
-A comprehensive Directus extension that provides all the latest ChatGPT core endpoints with component-based parameter inputs. Instead of entering values as JSON format, this extension provides intuitive UI components like dropdowns, sliders, and radio buttons.
+A modern Directus extension that leverages OpenAI's cutting-edge **Responses API** for enhanced AI operations with intelligent parameter management. This extension provides context-aware UI components that show only relevant parameters for each operation type, eliminating clutter and improving user experience.
+
+## 🚀 What's New in Version 1.1
+
+### Migrated to OpenAI Responses API
+- **Modern API Integration**: Now uses OpenAI's latest Responses API instead of deprecated Chat Completions
+- **Enhanced Capabilities**: Built-in tools for web search, file search, and code interpretation
+- **Better State Management**: Server-side conversation state management with response IDs
+- **Improved Performance**: Reduced latency and better token efficiency
+
+### Smart Parameter Visibility
+- **Context-Aware UI**: Parameters automatically show/hide based on selected operation type
+- **Reduced Complexity**: No more overwhelming forms with irrelevant options
+- **Improved UX**: Cleaner, more focused interface for each operation
 
 ## Features
 
 ### Supported OpenAI Operations
 
-- **Chat Completion** - Interactive conversations with GPT models
-- **Text Completion** - Traditional text completion
-- **Image Generation** - Create images with DALL-E models
-- **Audio Transcription** - Convert audio to text with Whisper
-- **Audio Translation** - Translate audio to English
-- **Text Embeddings** - Generate vector embeddings
+- **Text Generation** - Modern chat and text completion using Responses API
+- **Image Generation** - Create images with DALL-E using built-in image generation tool
+- **Web Search** - Real-time web search capabilities integrated directly into AI responses
+- **File Search** - Search through uploaded documents using vector store integration
+- **Code Interpreter** - Execute code and perform data analysis with AI assistance
+- **Text Embeddings** - Generate vector embeddings for semantic search
 - **Content Moderation** - Check content for policy violations
 - **List Models** - Get available OpenAI models
 
-### Component-Based Inputs
+### Intelligent UI Components
 
-- **Dropdowns** for model selection, operation types, image sizes, etc.
-- **Sliders** for temperature, top_p, frequency penalty, presence penalty
-- **Toggle switches** for streaming, response storage
-- **Text areas** for prompts, messages, and descriptions
-- **File uploads** for audio transcription/translation
-- **Input fields** with validation and placeholders
+- **Smart Dropdowns** for model selection, operation types, image settings
+- **Contextual Sliders** for temperature, top_p, penalties (only for text generation)
+- **Dynamic Fields** that appear only when relevant to selected operation
+- **Rich Text Areas** for prompts, messages, and code input
+- **JSON Editors** for vector store IDs and structured data
+- **Conversation Continuity** with previous response ID support
 
 ### Advanced Features
 
-- **Conditional Field Display** - Fields appear/hide based on operation type
-- **Streaming Support** - Real-time response streaming for chat and completions
+- **Contextual Parameter Display** - Fields appear only for relevant operations
+- **Conversation State Management** - Continue conversations using response IDs
+- **Built-in Tool Integration** - Web search, file search, and code execution
 - **Error Handling** - Comprehensive error messages and logging
 - **Type Safety** - Full TypeScript support with strict typing
-- **Response Storage** - Option to store/exclude API responses
+- **Response Storage** - Option to store responses for conversation continuity
 
 ## Installation
 
@@ -52,47 +66,57 @@ A comprehensive Directus extension that provides all the latest ChatGPT core end
 4. **Deploy to Directus**
    Copy the `dist` folder to your Directus extensions directory:
    ```
-   directus/extensions/operations/chatgpt-interactor/
+   directus/extensions/operations/openai-interactor/
    ```
 
 ## Usage
 
 ### 1. Basic Setup
 
-1. Add the **ChatGPT Interactor** operation to your Directus flow
+1. Add the **OpenAI Interactor** operation to your Directus flow
 2. Enter your OpenAI API key (required)
-3. Select the operation type from the dropdown
-4. Configure parameters using the intuitive UI components
+3. Select the operation type - the UI will automatically show relevant parameters
+4. Configure parameters using the contextual UI components
 
-### 2. Operation Types
+### 2. Operation Types & Parameters
 
-#### Chat Completion
-- **Model**: Choose from GPT-4o, GPT-4 Turbo, GPT-3.5 Turbo, etc.
-- **System Message**: Optional system prompt to guide AI behavior
-- **User Message**: The message to send to the AI
-- **Temperature**: Control randomness (0-2)
-- **Max Tokens**: Limit response length
-- **Streaming**: Enable real-time response streaming
+#### Text Generation
+**Visible Parameters:**
+- Model selection (GPT-4o, GPT-4o Mini, etc.)
+- System message (optional)
+- User message (required)
+- Generation parameters (temperature, max tokens, top_p, penalties)
+- Previous response ID for conversation continuity
 
 #### Image Generation
-- **Model**: DALL-E 3 or DALL-E 2
-- **Image Description**: Detailed description of the image
-- **Size**: 1024x1024, 1792x1024, 1024x1792, etc.
-- **Quality**: Standard or HD
-- **Style**: Vivid or Natural
+**Visible Parameters:**
+- Model selection (DALL-E models automatically chosen)
+- Image description prompt (required)
+- Image size, quality, and style options
+- Previous response ID for iterative generation
 
-#### Audio Transcription/Translation
-- **Audio File**: Upload audio file via Directus file picker
-- **Language**: ISO 639-1 language code (for transcription)
-- **Response Format**: JSON, Text, SRT, or VTT
+#### Web Search
+**Visible Parameters:**
+- Model selection
+- Search query (required)
+- Previous response ID for context-aware searches
 
-#### Text Embeddings
-- **Model**: Choose embedding model (text-embedding-3-large, etc.)
-- **Text**: Input text to generate embeddings for
+#### File Search
+**Visible Parameters:**
+- Model selection
+- Search query (required)
+- Vector store IDs (JSON array, required)
+- Previous response ID for continued searches
+
+#### Code Interpreter
+**Visible Parameters:**
+- Model selection
+- Code or analysis request (required)
+- Previous response ID for multi-step analysis
 
 ### 3. Response Handling
 
-The extension returns structured responses:
+The extension returns enhanced responses with conversation state:
 
 ```typescript
 // Success Response
@@ -100,10 +124,11 @@ The extension returns structured responses:
   success: true,
   data: {
     content: "AI response...",
-    model: "gpt-3.5-turbo",
+    model: "gpt-4o-mini",
     usage: { /* token usage */ },
-    finish_reason: "stop"
-  }
+    finish_reason: "completed"
+  },
+  response_id: "resp_abc123..." // For conversation continuity
 }
 
 // Error Response
@@ -112,31 +137,68 @@ The extension returns structured responses:
   error: {
     message: "Error description",
     type: "ErrorType",
-    operation_type: "chat_completion",
-    model: "gpt-3.5-turbo"
+    operation_type: "text_generation",
+    model: "gpt-4o-mini"
   }
 }
 ```
 
-## Configuration Options
+## Configuration Benefits
 
-### Global Settings
-- **API Key**: Your OpenAI API key (keep secure!)
-- **Store Response**: Whether to include full API response in result
+### Smart Parameter Management
+- **Text Generation**: Only shows text-related parameters (temperature, tokens, penalties)
+- **Image Generation**: Only shows image-specific options (size, quality, style)
+- **Search Operations**: Focus on search query and vector stores
+- **Code Interpreter**: Streamlined for code and data analysis requests
 
-### Model-Specific Parameters
-- **Temperature**: Creativity level (0 = deterministic, 2 = very creative)
-- **Top P**: Nucleus sampling (0-1)
-- **Frequency Penalty**: Reduce repetition (-2 to 2)
-- **Presence Penalty**: Encourage new topics (-2 to 2)
-- **Max Tokens**: Response length limit
+### Conversation Continuity
+- Use `response_id` from previous calls to maintain conversation context
+- Server-side state management eliminates need to resend full conversation history
+- Improved performance and reduced token usage
 
-## Security Notes
+## Supported Models
 
-- **API Key Storage**: Store your OpenAI API key securely
-- **Rate Limiting**: Be aware of OpenAI API rate limits
-- **Cost Management**: Monitor token usage for cost control
-- **Content Filtering**: Use moderation endpoint for user content
+### Text Generation Models
+- GPT-4o
+- GPT-4o Mini  
+- GPT-4 Turbo
+- GPT-4
+- GPT-3.5 Turbo
+
+### Image Generation Models
+- DALL-E 3 (recommended)
+- DALL-E 2
+
+### Embedding Models
+- Text Embedding 3 Large
+- Text Embedding 3 Small
+- Text Embedding Ada 002
+
+## Migration from v1.0
+
+If you're upgrading from the previous version:
+
+1. **Operation Types Changed**:
+   - `chat_completion` → `text_generation`
+   - `completion` → `text_generation` 
+   - Audio operations removed (use dedicated audio extensions)
+
+2. **Parameter Names Updated**:
+   - `message` → `user_message`
+   - `max_tokens` → `max_output_tokens`
+   - New: `previous_response_id`, `search_query`, `vector_store_ids`, `code_input`
+
+3. **Enhanced Features**:
+   - Built-in web search, file search, and code interpretation
+   - Conversation state management
+   - Context-aware parameter display
+
+## Security & Best Practices
+
+- **API Key Security**: Store your OpenAI API key securely in Directus environment
+- **Vector Store Management**: Use proper vector store IDs for file search operations
+- **Response Storage**: Enable response storage for conversation continuity
+- **Cost Optimization**: Monitor token usage with the new efficient Responses API
 
 ## Development
 
@@ -149,39 +211,6 @@ npm run dev
 ```bash
 npm run validate
 ```
-
-### Type Checking
-The extension uses strict TypeScript with comprehensive type definitions for all OpenAI API interactions.
-
-## Supported Models
-
-### Chat & Completion Models
-- GPT-4o
-- GPT-4o Mini  
-- GPT-4 Turbo
-- GPT-4
-- GPT-3.5 Turbo
-
-### Image Models
-- DALL-E 3
-- DALL-E 2
-
-### Audio Models
-- Whisper 1
-
-### Embedding Models
-- Text Embedding 3 Large
-- Text Embedding 3 Small
-- Text Embedding Ada 002
-
-## Error Handling
-
-The extension includes comprehensive error handling:
-- Invalid API keys
-- Missing required parameters
-- File upload errors
-- OpenAI API errors
-- Network connectivity issues
 
 ## License
 

@@ -2,21 +2,21 @@ import { defineOperationApp } from '@directus/extensions-sdk';
 
 export default defineOperationApp({
 	id: 'chatgpt-interactor',
-	name: 'ChatGPT Interactor',
+	name: 'OpenAI Interactor',
 	icon: 'smart_toy',
-	description: 'Interact with OpenAI ChatGPT API endpoints',
-	overview: ({ operation_type, model, prompt, message }) => [
+	description: 'Interact with OpenAI using the modern Responses API',
+	overview: ({ operation_type, model, user_message, image_prompt, search_query }) => [
 		{
 			label: 'Operation',
-			text: operation_type || 'Chat Completion',
+			text: operation_type || 'Text Generation',
 		},
 		{
 			label: 'Model',
-			text: model || 'gpt-3.5-turbo',
+			text: model || 'gpt-4o-mini',
 		},
 		{
 			label: 'Input',
-			text: prompt || message || 'No input provided',
+			text: user_message || image_prompt || search_query || 'No input provided',
 		},
 	],
 	options: [
@@ -43,11 +43,11 @@ export default defineOperationApp({
 				interface: 'select-dropdown',
 				options: {
 					choices: [
-						{ text: 'Chat Completion', value: 'chat_completion' },
-						{ text: 'Text Completion', value: 'completion' },
+						{ text: 'Text Generation', value: 'text_generation' },
 						{ text: 'Image Generation', value: 'image_generation' },
-						{ text: 'Audio Transcription', value: 'audio_transcription' },
-						{ text: 'Audio Translation', value: 'audio_translation' },
+						{ text: 'Web Search', value: 'web_search' },
+						{ text: 'File Search', value: 'file_search' },
+						{ text: 'Code Interpreter', value: 'code_interpreter' },
 						{ text: 'Text Embeddings', value: 'embeddings' },
 						{ text: 'Content Moderation', value: 'moderation' },
 						{ text: 'List Models', value: 'list_models' },
@@ -55,7 +55,7 @@ export default defineOperationApp({
 				},
 			},
 			schema: {
-				default_value: 'chat_completion',
+				default_value: 'text_generation',
 			},
 		},
 		{
@@ -77,14 +77,37 @@ export default defineOperationApp({
 						{ text: 'Text Embedding Ada 002', value: 'text-embedding-ada-002' },
 						{ text: 'DALL-E 3', value: 'dall-e-3' },
 						{ text: 'DALL-E 2', value: 'dall-e-2' },
-						{ text: 'Whisper 1', value: 'whisper-1' },
 					],
 				},
 			},
 			schema: {
-				default_value: 'gpt-3.5-turbo',
+				default_value: 'gpt-4o-mini',
 			},
 		},
+		{
+			field: 'previous_response_id',
+			name: 'Previous Response ID',
+			type: 'string',
+			meta: {
+				width: 'full',
+				interface: 'input',
+				options: {
+					placeholder: 'resp_...',
+				},
+				note: 'Use this to continue a previous conversation (optional)',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_in: ['text_generation', 'image_generation', 'web_search', 'file_search', 'code_interpreter'],
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		// Text Generation Parameters
 		{
 			field: 'system_message',
 			name: 'System Message',
@@ -95,12 +118,12 @@ export default defineOperationApp({
 				options: {
 					placeholder: 'You are a helpful assistant...',
 				},
-				note: 'System prompt to guide the AI behavior (for chat completions)',
+				note: 'System prompt to guide the AI behavior',
 				conditions: [
 					{
 						rule: {
 							operation_type: {
-								_eq: 'chat_completion',
+								_eq: 'text_generation',
 							},
 						},
 						hidden: false,
@@ -109,7 +132,7 @@ export default defineOperationApp({
 			},
 		},
 		{
-			field: 'message',
+			field: 'user_message',
 			name: 'User Message',
 			type: 'text',
 			meta: {
@@ -123,7 +146,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_eq: 'chat_completion',
+								_eq: 'text_generation',
 							},
 						},
 						hidden: false,
@@ -131,29 +154,7 @@ export default defineOperationApp({
 				],
 			},
 		},
-		{
-			field: 'prompt',
-			name: 'Prompt',
-			type: 'text',
-			meta: {
-				width: 'full',
-				interface: 'input-multiline',
-				options: {
-					placeholder: 'Enter your prompt...',
-				},
-				note: 'Text prompt for completion or embeddings',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_in: ['completion', 'embeddings', 'moderation'],
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
+		// Image Generation Parameters
 		{
 			field: 'image_prompt',
 			name: 'Image Description',
@@ -175,166 +176,6 @@ export default defineOperationApp({
 						hidden: false,
 					},
 				],
-			},
-		},
-		{
-			field: 'audio_file',
-			name: 'Audio File',
-			type: 'uuid',
-			meta: {
-				width: 'full',
-				interface: 'file',
-				note: 'Audio file to transcribe or translate',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_in: ['audio_transcription', 'audio_translation'],
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		{
-			field: 'temperature',
-			name: 'Temperature',
-			type: 'float',
-			meta: {
-				width: 'half',
-				interface: 'slider',
-				options: {
-					min: 0,
-					max: 2,
-					step: 0.1,
-				},
-				note: 'Controls randomness (0-2). Higher values make output more random',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_in: ['chat_completion', 'completion'],
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 1,
-			},
-		},
-		{
-			field: 'max_tokens',
-			name: 'Max Tokens',
-			type: 'integer',
-			meta: {
-				width: 'half',
-				interface: 'input',
-				options: {
-					min: 1,
-					max: 4096,
-					placeholder: '1000',
-				},
-				note: 'Maximum number of tokens to generate',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_in: ['chat_completion', 'completion'],
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 1000,
-			},
-		},
-		{
-			field: 'top_p',
-			name: 'Top P',
-			type: 'float',
-			meta: {
-				width: 'half',
-				interface: 'slider',
-				options: {
-					min: 0,
-					max: 1,
-					step: 0.01,
-				},
-				note: 'Nucleus sampling parameter (0-1)',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_in: ['chat_completion', 'completion'],
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 1,
-			},
-		},
-		{
-			field: 'frequency_penalty',
-			name: 'Frequency Penalty',
-			type: 'float',
-			meta: {
-				width: 'half',
-				interface: 'slider',
-				options: {
-					min: -2,
-					max: 2,
-					step: 0.1,
-				},
-				note: 'Penalty for token frequency (-2 to 2)',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_in: ['chat_completion', 'completion'],
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 0,
-			},
-		},
-		{
-			field: 'presence_penalty',
-			name: 'Presence Penalty',
-			type: 'float',
-			meta: {
-				width: 'half',
-				interface: 'slider',
-				options: {
-					min: -2,
-					max: 2,
-					step: 0.1,
-				},
-				note: 'Penalty for token presence (-2 to 2)',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_in: ['chat_completion', 'completion'],
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 0,
 			},
 		},
 		{
@@ -427,22 +268,23 @@ export default defineOperationApp({
 				default_value: 'vivid',
 			},
 		},
+		// Search Parameters
 		{
-			field: 'audio_language',
-			name: 'Audio Language',
-			type: 'string',
+			field: 'search_query',
+			name: 'Search Query',
+			type: 'text',
 			meta: {
-				width: 'half',
-				interface: 'input',
+				width: 'full',
+				interface: 'input-multiline',
 				options: {
-					placeholder: 'en',
+					placeholder: 'What would you like to search for?',
 				},
-				note: 'Language of the audio (ISO 639-1 code)',
+				note: 'Query for web search or file search',
 				conditions: [
 					{
 						rule: {
 							operation_type: {
-								_in: ['audio_transcription', 'audio_translation'],
+								_in: ['web_search', 'file_search'],
 							},
 						},
 						hidden: false,
@@ -451,26 +293,96 @@ export default defineOperationApp({
 			},
 		},
 		{
-			field: 'response_format',
-			name: 'Response Format',
-			type: 'string',
+			field: 'vector_store_ids',
+			name: 'Vector Store IDs',
+			type: 'json',
 			meta: {
-				width: 'half',
-				interface: 'select-dropdown',
+				width: 'full',
+				interface: 'input-code',
 				options: {
-					choices: [
-						{ text: 'JSON', value: 'json' },
-						{ text: 'Text', value: 'text' },
-						{ text: 'SRT', value: 'srt' },
-						{ text: 'VTT', value: 'vtt' },
-					],
+					language: 'json',
+					placeholder: '["vs_123", "vs_456"]',
 				},
-				note: 'Format of the transcription response',
+				note: 'Array of vector store IDs to search in (required for file search)',
 				conditions: [
 					{
 						rule: {
 							operation_type: {
-								_in: ['audio_transcription', 'audio_translation'],
+								_eq: 'file_search',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		// Code Interpreter Parameters
+		{
+			field: 'code_input',
+			name: 'Code or Data Analysis Request',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'Analyze this data... or Write Python code to...',
+				},
+				note: 'Request for code interpretation or data analysis',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'code_interpreter',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		// Text Processing Parameters
+		{
+			field: 'text_input',
+			name: 'Text Input',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'Enter text for embeddings or moderation...',
+				},
+				note: 'Text for embeddings or moderation analysis',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_in: ['embeddings', 'moderation'],
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		// Generation Parameters (for text generation only)
+		{
+			field: 'temperature',
+			name: 'Temperature',
+			type: 'float',
+			meta: {
+				width: 'half',
+				interface: 'slider',
+				options: {
+					min: 0,
+					max: 2,
+					step: 0.1,
+				},
+				note: 'Controls randomness (0-2). Higher values make output more random',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'text_generation',
 							},
 						},
 						hidden: false,
@@ -478,9 +390,122 @@ export default defineOperationApp({
 				],
 			},
 			schema: {
-				default_value: 'json',
+				default_value: 1,
 			},
 		},
+		{
+			field: 'max_output_tokens',
+			name: 'Max Output Tokens',
+			type: 'integer',
+			meta: {
+				width: 'half',
+				interface: 'input',
+				options: {
+					min: 1,
+					max: 4096,
+					placeholder: '1000',
+				},
+				note: 'Maximum number of tokens to generate',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'text_generation',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+			schema: {
+				default_value: 1000,
+			},
+		},
+		{
+			field: 'top_p',
+			name: 'Top P',
+			type: 'float',
+			meta: {
+				width: 'half',
+				interface: 'slider',
+				options: {
+					min: 0,
+					max: 1,
+					step: 0.01,
+				},
+				note: 'Nucleus sampling parameter (0-1)',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'text_generation',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+			schema: {
+				default_value: 1,
+			},
+		},
+		{
+			field: 'frequency_penalty',
+			name: 'Frequency Penalty',
+			type: 'float',
+			meta: {
+				width: 'half',
+				interface: 'slider',
+				options: {
+					min: -2,
+					max: 2,
+					step: 0.1,
+				},
+				note: 'Penalty for token frequency (-2 to 2)',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'text_generation',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+			schema: {
+				default_value: 0,
+			},
+		},
+		{
+			field: 'presence_penalty',
+			name: 'Presence Penalty',
+			type: 'float',
+			meta: {
+				width: 'half',
+				interface: 'slider',
+				options: {
+					min: -2,
+					max: 2,
+					step: 0.1,
+				},
+				note: 'Penalty for token presence (-2 to 2)',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'text_generation',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+			schema: {
+				default_value: 0,
+			},
+		},
+		// Storage Options
 		{
 			field: 'store_response',
 			name: 'Store Response',
@@ -488,7 +513,17 @@ export default defineOperationApp({
 			meta: {
 				width: 'half',
 				interface: 'boolean',
-				note: 'Store the API response in the operation result',
+				note: 'Store the API response for conversation continuity',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_in: ['text_generation', 'image_generation', 'web_search', 'file_search', 'code_interpreter'],
+							},
+						},
+						hidden: false,
+					},
+				],
 			},
 			schema: {
 				default_value: true,

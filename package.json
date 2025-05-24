@@ -1,8 +1,8 @@
 {
 	"name": "directus-extension-chatgpt-interactor",
-	"description": "Directus extension for ChatGPT operations with component-based parameter inputs",
+	"description": "Directus extension for OpenAI operations using the modern Responses API with improved parameter management",
 	"icon": "smart_toy",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"license": "MIT",
 	"keywords": [
 		"directus",
