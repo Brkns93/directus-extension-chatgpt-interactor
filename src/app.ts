@@ -5,7 +5,7 @@ export default defineOperationApp({
 	name: 'OpenAI Interactor',
 	icon: 'smart_toy',
 	description: 'Interact with OpenAI using the modern Responses API',
-	overview: ({ operation_type, model, user_message, image_prompt, search_query }) => [
+	overview: ({ operation_type, model, user_message, image_prompt, search_query, code_input, text_input }) => [
 		{
 			label: 'Operation',
 			text: operation_type || 'Text Generation',
@@ -16,7 +16,7 @@ export default defineOperationApp({
 		},
 		{
 			label: 'Input',
-			text: user_message || image_prompt || search_query || 'No input provided',
+			text: user_message || image_prompt || search_query || code_input || text_input || 'No input provided',
 		},
 	],
 	options: [
@@ -45,7 +45,6 @@ export default defineOperationApp({
 					choices: [
 						{ text: 'Text Generation', value: 'text_generation' },
 						{ text: 'Image Generation', value: 'image_generation' },
-						{ text: 'Web Search', value: 'web_search' },
 						{ text: 'File Search', value: 'file_search' },
 						{ text: 'Code Interpreter', value: 'code_interpreter' },
 						{ text: 'Text Embeddings', value: 'embeddings' },
@@ -99,7 +98,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_generation', 'web_search', 'file_search', 'code_interpreter'],
+								_in: ['text_generation', 'image_generation', 'file_search', 'code_interpreter'],
 							},
 						},
 						hidden: false,
@@ -107,7 +106,8 @@ export default defineOperationApp({
 				],
 			},
 		},
-		// Text Generation Parameters
+		
+		// === TEXT GENERATION PARAMETERS ===
 		{
 			field: 'system_message',
 			name: 'System Message',
@@ -154,52 +154,19 @@ export default defineOperationApp({
 				],
 			},
 		},
-		// Image Generation Parameters
 		{
-			field: 'image_prompt',
-			name: 'Image Description',
-			type: 'text',
-			meta: {
-				width: 'full',
-				interface: 'input-multiline',
-				options: {
-					placeholder: 'A detailed description of the image to generate...',
-				},
-				note: 'Description of the image to generate',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'image_generation',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		{
-			field: 'image_size',
-			name: 'Image Size',
-			type: 'string',
+			field: 'enable_web_search',
+			name: 'Enable Web Search',
+			type: 'boolean',
 			meta: {
 				width: 'half',
-				interface: 'select-dropdown',
-				options: {
-					choices: [
-						{ text: '1024x1024', value: '1024x1024' },
-						{ text: '1792x1024', value: '1792x1024' },
-						{ text: '1024x1792', value: '1024x1792' },
-						{ text: '512x512', value: '512x512' },
-						{ text: '256x256', value: '256x256' },
-					],
-				},
-				note: 'Size of the generated image',
+				interface: 'boolean',
+				note: 'Allow the AI to search the web for current information',
 				conditions: [
 					{
 						rule: {
 							operation_type: {
-								_eq: 'image_generation',
+								_eq: 'text_generation',
 							},
 						},
 						hidden: false,
@@ -207,28 +174,29 @@ export default defineOperationApp({
 				],
 			},
 			schema: {
-				default_value: '1024x1024',
+				default_value: false,
 			},
 		},
 		{
-			field: 'image_quality',
-			name: 'Image Quality',
+			field: 'response_format',
+			name: 'Response Format',
 			type: 'string',
 			meta: {
 				width: 'half',
 				interface: 'select-dropdown',
 				options: {
 					choices: [
-						{ text: 'Standard', value: 'standard' },
-						{ text: 'HD', value: 'hd' },
+						{ text: 'Text', value: 'text' },
+						{ text: 'JSON Object', value: 'json_object' },
+						{ text: 'JSON Schema', value: 'json_schema' },
 					],
 				},
-				note: 'Quality of the generated image',
+				note: 'Format of the AI response',
 				conditions: [
 					{
 						rule: {
 							operation_type: {
-								_eq: 'image_generation',
+								_eq: 'text_generation',
 							},
 						},
 						hidden: false,
@@ -236,135 +204,42 @@ export default defineOperationApp({
 				],
 			},
 			schema: {
-				default_value: 'standard',
+				default_value: 'text',
 			},
 		},
 		{
-			field: 'image_style',
-			name: 'Image Style',
-			type: 'string',
-			meta: {
-				width: 'half',
-				interface: 'select-dropdown',
-				options: {
-					choices: [
-						{ text: 'Vivid', value: 'vivid' },
-						{ text: 'Natural', value: 'natural' },
-					],
-				},
-				note: 'Style of the generated image',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'image_generation',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 'vivid',
-			},
-		},
-		// Search Parameters
-		{
-			field: 'search_query',
-			name: 'Search Query',
-			type: 'text',
-			meta: {
-				width: 'full',
-				interface: 'input-multiline',
-				options: {
-					placeholder: 'What would you like to search for?',
-				},
-				note: 'Query for web search or file search',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_in: ['web_search', 'file_search'],
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		{
-			field: 'vector_store_ids',
-			name: 'Vector Store IDs',
+			field: 'json_schema',
+			name: 'JSON Schema',
 			type: 'json',
 			meta: {
 				width: 'full',
 				interface: 'input-code',
 				options: {
 					language: 'json',
-					placeholder: '["vs_123", "vs_456"]',
+					placeholder: '{\n  "type": "object",\n  "properties": {\n    "name": { "type": "string" },\n    "age": { "type": "number" }\n  },\n  "required": ["name"]\n}',
 				},
-				note: 'Array of vector store IDs to search in (required for file search)',
+				note: 'JSON schema to structure the AI response',
 				conditions: [
 					{
 						rule: {
-							operation_type: {
-								_eq: 'file_search',
-							},
+							_and: [
+								{
+									operation_type: {
+										_eq: 'text_generation',
+									},
+								},
+								{
+									response_format: {
+										_eq: 'json_schema',
+									},
+								},
+							],
 						},
 						hidden: false,
 					},
 				],
 			},
 		},
-		// Code Interpreter Parameters
-		{
-			field: 'code_input',
-			name: 'Code or Data Analysis Request',
-			type: 'text',
-			meta: {
-				width: 'full',
-				interface: 'input-multiline',
-				options: {
-					placeholder: 'Analyze this data... or Write Python code to...',
-				},
-				note: 'Request for code interpretation or data analysis',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'code_interpreter',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		// Text Processing Parameters
-		{
-			field: 'text_input',
-			name: 'Text Input',
-			type: 'text',
-			meta: {
-				width: 'full',
-				interface: 'input-multiline',
-				options: {
-					placeholder: 'Enter text for embeddings or moderation...',
-				},
-				note: 'Text for embeddings or moderation analysis',
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_in: ['embeddings', 'moderation'],
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		// Generation Parameters (for text generation only)
 		{
 			field: 'temperature',
 			name: 'Temperature',
@@ -505,7 +380,222 @@ export default defineOperationApp({
 				default_value: 0,
 			},
 		},
-		// Storage Options
+
+		// === IMAGE GENERATION PARAMETERS ===
+		{
+			field: 'image_prompt',
+			name: 'Image Description',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'A detailed description of the image to generate...',
+				},
+				note: 'Description of the image to generate',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'image_generation',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'image_size',
+			name: 'Image Size',
+			type: 'string',
+			meta: {
+				width: 'half',
+				interface: 'select-dropdown',
+				options: {
+					choices: [
+						{ text: '1024x1024', value: '1024x1024' },
+						{ text: '1792x1024', value: '1792x1024' },
+						{ text: '1024x1792', value: '1024x1792' },
+						{ text: '512x512', value: '512x512' },
+						{ text: '256x256', value: '256x256' },
+					],
+				},
+				note: 'Size of the generated image',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'image_generation',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+			schema: {
+				default_value: '1024x1024',
+			},
+		},
+		{
+			field: 'image_quality',
+			name: 'Image Quality',
+			type: 'string',
+			meta: {
+				width: 'half',
+				interface: 'select-dropdown',
+				options: {
+					choices: [
+						{ text: 'Standard', value: 'standard' },
+						{ text: 'HD', value: 'hd' },
+					],
+				},
+				note: 'Quality of the generated image',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'image_generation',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+			schema: {
+				default_value: 'standard',
+			},
+		},
+		{
+			field: 'image_style',
+			name: 'Image Style',
+			type: 'string',
+			meta: {
+				width: 'half',
+				interface: 'select-dropdown',
+				options: {
+					choices: [
+						{ text: 'Vivid', value: 'vivid' },
+						{ text: 'Natural', value: 'natural' },
+					],
+				},
+				note: 'Style of the generated image',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'image_generation',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+			schema: {
+				default_value: 'vivid',
+			},
+		},
+
+		// === FILE SEARCH PARAMETERS ===
+		{
+			field: 'search_query',
+			name: 'Search Query',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'What would you like to search for in the files?',
+				},
+				note: 'Query to search through uploaded documents',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'vector_store_ids',
+			name: 'Vector Store IDs',
+			type: 'json',
+			meta: {
+				width: 'full',
+				interface: 'input-code',
+				options: {
+					language: 'json',
+					placeholder: '["vs_123", "vs_456"]',
+				},
+				note: 'Array of vector store IDs to search in (required for file search)',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+
+		// === CODE INTERPRETER PARAMETERS ===
+		{
+			field: 'code_input',
+			name: 'Code or Data Analysis Request',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'Analyze this data... or Write Python code to...',
+				},
+				note: 'Request for code interpretation or data analysis',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'code_interpreter',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+
+		// === TEXT PROCESSING PARAMETERS ===
+		{
+			field: 'text_input',
+			name: 'Text Input',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'Enter text for embeddings or moderation...',
+				},
+				note: 'Text for embeddings or moderation analysis',
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_in: ['embeddings', 'moderation'],
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+
+		// === STORAGE OPTIONS ===
 		{
 			field: 'store_response',
 			name: 'Store Response',
@@ -518,7 +608,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_generation', 'web_search', 'file_search', 'code_interpreter'],
+								_in: ['text_generation', 'image_generation', 'file_search', 'code_interpreter'],
 							},
 						},
 						hidden: false,

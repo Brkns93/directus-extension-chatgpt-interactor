@@ -3,10 +3,13 @@ import OpenAI from 'openai';
 
 type Options = {
 	api_key: string;
-	operation_type: 'text_generation' | 'image_generation' | 'web_search' | 'file_search' | 'code_interpreter' | 'embeddings' | 'moderation' | 'list_models';
+	operation_type: 'text_generation' | 'image_generation' | 'file_search' | 'code_interpreter' | 'embeddings' | 'moderation' | 'list_models';
 	model?: string;
 	system_message?: string;
 	user_message?: string;
+	enable_web_search?: boolean;
+	response_format?: 'text' | 'json_object' | 'json_schema';
+	json_schema?: object;
 	image_prompt?: string;
 	search_query?: string;
 	vector_store_ids?: string[];
@@ -68,6 +71,9 @@ export default defineOperationApi<Options>({
 			model = 'gpt-4o-mini',
 			system_message,
 			user_message,
+			enable_web_search = false,
+			response_format = 'text',
+			json_schema,
 			image_prompt,
 			search_query,
 			vector_store_ids,
@@ -116,6 +122,15 @@ export default defineOperationApi<Options>({
 						content: user_message,
 					});
 
+					const tools = [];
+					
+					// Add web search tool if enabled
+					if (enable_web_search) {
+						tools.push({
+							type: 'web_search_preview' as const,
+						});
+					}
+
 					const responseParams: any = {
 						model,
 						input,
@@ -126,6 +141,30 @@ export default defineOperationApi<Options>({
 						presence_penalty,
 						store: store_response,
 					};
+
+					// Add tools if any are enabled
+					if (tools.length > 0) {
+						responseParams.tools = tools;
+					}
+
+					// Handle response format
+					if (response_format === 'json_object') {
+						responseParams.response_format = {
+							type: 'json_object',
+						};
+					} else if (response_format === 'json_schema') {
+						if (!json_schema) {
+							throw new Error('JSON schema is required when response format is json_schema');
+						}
+						responseParams.response_format = {
+							type: 'json_schema',
+							json_schema: {
+								name: 'response',
+								schema: json_schema,
+								strict: true,
+							},
+						};
+					}
 
 					if (previous_response_id) {
 						responseParams.previous_response_id = previous_response_id;
@@ -140,6 +179,7 @@ export default defineOperationApi<Options>({
 							model: textResponse.model,
 							usage: textResponse.usage,
 							finish_reason: textResponse.status,
+							response_format: response_format,
 						},
 						response_id: textResponse.id,
 					};
@@ -151,7 +191,7 @@ export default defineOperationApi<Options>({
 					}
 
 					const imageResponseParams: any = {
-						model: model.includes('dall-e') ? model : 'gpt-4o',
+						model: model.includes('dall-e') ? model : 'dall-e-3',
 						input: [
 							{
 								role: 'user' as const,
@@ -183,44 +223,6 @@ export default defineOperationApi<Options>({
 							usage: imageResponse.usage,
 						},
 						response_id: imageResponse.id,
-					};
-					break;
-
-				case 'web_search':
-					if (!search_query) {
-						throw new Error('Search query is required for web search');
-					}
-
-					const webSearchParams: any = {
-						model,
-						input: [
-							{
-								role: 'user' as const,
-								content: search_query,
-							}
-						],
-						tools: [
-							{
-								type: 'web_search_preview' as const,
-							}
-						],
-						store: store_response,
-					};
-
-					if (previous_response_id) {
-						webSearchParams.previous_response_id = previous_response_id;
-					}
-
-					const webResponse = await openai.responses.create(webSearchParams);
-					
-					result = {
-						success: true,
-						data: {
-							content: webResponse.output_text || '',
-							model: webResponse.model,
-							usage: webResponse.usage,
-						},
-						response_id: webResponse.id,
 					};
 					break;
 
@@ -298,7 +300,7 @@ export default defineOperationApi<Options>({
 						success: true,
 						data: {
 							content: codeResponse.output_text || '',
-							output: codeResponse.output || [],
+							files: codeResponse.output || [], // Files created by code interpreter
 							model: codeResponse.model,
 							usage: codeResponse.usage,
 						},
@@ -332,7 +334,9 @@ export default defineOperationApi<Options>({
 						throw new Error('Text is required for moderation');
 					}
 
+					// Use the dedicated Moderation API endpoint
 					const moderationParams: OpenAI.Moderations.ModerationCreateParams = {
+						model: 'omni-moderation-latest', // Use the latest multimodal model
 						input: text_input,
 					};
 
@@ -342,6 +346,9 @@ export default defineOperationApi<Options>({
 						data: {
 							results: moderation.results,
 							model: moderation.model,
+							flagged: moderation.results[0]?.flagged || false,
+							categories: moderation.results[0]?.categories || {},
+							category_scores: moderation.results[0]?.category_scores || {},
 						},
 					};
 					break;
