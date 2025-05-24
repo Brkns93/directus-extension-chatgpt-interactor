@@ -119,6 +119,7 @@ export default defineOperationApp({
 					placeholder: 'You are a helpful assistant...',
 				},
 				note: 'System prompt to guide the AI behavior',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -142,6 +143,7 @@ export default defineOperationApp({
 					placeholder: 'Type your message here...',
 				},
 				note: 'The message to send to the AI',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -162,6 +164,7 @@ export default defineOperationApp({
 				width: 'half',
 				interface: 'boolean',
 				note: 'Allow the AI to search the web for current information',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -192,6 +195,7 @@ export default defineOperationApp({
 					],
 				},
 				note: 'Format of the AI response',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -219,6 +223,7 @@ export default defineOperationApp({
 					placeholder: '{\n  "type": "object",\n  "properties": {\n    "name": { "type": "string" },\n    "age": { "type": "number" }\n  },\n  "required": ["name"]\n}',
 				},
 				note: 'JSON schema to structure the AI response',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -253,6 +258,7 @@ export default defineOperationApp({
 					step: 0.1,
 				},
 				note: 'Controls randomness (0-2). Higher values make output more random',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -281,6 +287,7 @@ export default defineOperationApp({
 					placeholder: '1000',
 				},
 				note: 'Maximum number of tokens to generate',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -309,6 +316,7 @@ export default defineOperationApp({
 					step: 0.01,
 				},
 				note: 'Nucleus sampling parameter (0-1)',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -337,6 +345,7 @@ export default defineOperationApp({
 					step: 0.1,
 				},
 				note: 'Penalty for token frequency (-2 to 2)',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -365,6 +374,7 @@ export default defineOperationApp({
 					step: 0.1,
 				},
 				note: 'Penalty for token presence (-2 to 2)',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -393,6 +403,7 @@ export default defineOperationApp({
 					placeholder: 'A detailed description of the image to generate...',
 				},
 				note: 'Description of the image to generate',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -422,6 +433,7 @@ export default defineOperationApp({
 					],
 				},
 				note: 'Size of the generated image',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -451,6 +463,7 @@ export default defineOperationApp({
 					],
 				},
 				note: 'Quality of the generated image',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -480,6 +493,7 @@ export default defineOperationApp({
 					],
 				},
 				note: 'Style of the generated image',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -508,6 +522,7 @@ export default defineOperationApp({
 					placeholder: 'What would you like to search for in the files?',
 				},
 				note: 'Query to search through uploaded documents',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -532,6 +547,7 @@ export default defineOperationApp({
 					placeholder: '["vs_123", "vs_456"]',
 				},
 				note: 'Array of vector store IDs to search in (required for file search)',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -557,6 +573,7 @@ export default defineOperationApp({
 					placeholder: 'Analyze this data... or Write Python code to...',
 				},
 				note: 'Request for code interpretation or data analysis',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -582,6 +599,7 @@ export default defineOperationApp({
 					placeholder: 'Enter text for embeddings or moderation...',
 				},
 				note: 'Text for embeddings or moderation analysis',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
@@ -604,6 +622,7 @@ export default defineOperationApp({
 				width: 'half',
 				interface: 'boolean',
 				note: 'Store the API response for conversation continuity',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
