@@ -17,9 +17,6 @@ type Options = {
 	text_input?: string;
 	temperature?: number;
 	max_output_tokens?: number;
-	top_p?: number;
-	frequency_penalty?: number;
-	presence_penalty?: number;
 	image_size?: '1024x1024' | '1792x1024' | '1024x1792' | '512x512' | '256x256';
 	image_quality?: 'standard' | 'hd';
 	image_style?: 'vivid' | 'natural';
@@ -79,11 +76,7 @@ export default defineOperationApi<Options>({
 			vector_store_ids,
 			code_input,
 			text_input,
-			temperature = 1,
 			max_output_tokens = 1000,
-			top_p = 1,
-			frequency_penalty = 0,
-			presence_penalty = 0,
 			image_size = '1024x1024',
 			image_quality = 'standard',
 			image_style = 'vivid',
@@ -134,11 +127,7 @@ export default defineOperationApi<Options>({
 					const responseParams: any = {
 						model,
 						input,
-						temperature,
 						max_output_tokens,
-						top_p,
-						frequency_penalty,
-						presence_penalty,
 						store: store_response,
 					};
 

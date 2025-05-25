@@ -248,35 +248,6 @@ export default defineOperationApp({
 			},
 		},
 		{
-			field: 'temperature',
-			name: 'Temperature',
-			type: 'float',
-			meta: {
-				width: 'half',
-				interface: 'slider',
-				options: {
-					min: 0,
-					max: 2,
-					step: 0.1,
-				},
-				note: 'Controls randomness (0-2). Higher values make output more random',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'text_generation',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 1,
-			},
-		},
-		{
 			field: 'max_output_tokens',
 			name: 'Max Output Tokens',
 			type: 'integer',
@@ -303,93 +274,6 @@ export default defineOperationApp({
 			},
 			schema: {
 				default_value: 1000,
-			},
-		},
-		{
-			field: 'top_p',
-			name: 'Top P',
-			type: 'float',
-			meta: {
-				width: 'half',
-				interface: 'slider',
-				options: {
-					min: 0,
-					max: 1,
-					step: 0.01,
-				},
-				note: 'Nucleus sampling parameter (0-1)',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'text_generation',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 1,
-			},
-		},
-		{
-			field: 'frequency_penalty',
-			name: 'Frequency Penalty',
-			type: 'float',
-			meta: {
-				width: 'half',
-				interface: 'slider',
-				options: {
-					min: -2,
-					max: 2,
-					step: 0.1,
-				},
-				note: 'Penalty for token frequency (-2 to 2)',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'text_generation',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 0,
-			},
-		},
-		{
-			field: 'presence_penalty',
-			name: 'Presence Penalty',
-			type: 'float',
-			meta: {
-				width: 'half',
-				interface: 'slider',
-				options: {
-					min: -2,
-					max: 2,
-					step: 0.1,
-				},
-				note: 'Penalty for token presence (-2 to 2)',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'text_generation',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 0,
 			},
 		},
 
