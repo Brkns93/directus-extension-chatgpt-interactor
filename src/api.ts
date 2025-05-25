@@ -67,7 +67,7 @@ export default defineOperationApi<Options>({
 	handler: async (options): Promise<OperationResult> => {
 		const {
 			api_key,
-			operation_type,
+			operation_type = 'text_generation',
 			model = 'gpt-4o-mini',
 			system_message,
 			user_message,

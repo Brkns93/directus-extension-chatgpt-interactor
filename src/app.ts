@@ -52,6 +52,7 @@ export default defineOperationApp({
 						{ text: 'List Models', value: 'list_models' },
 					],
 				},
+				required: true,
 			},
 			schema: {
 				default_value: 'text_generation',
@@ -94,6 +95,7 @@ export default defineOperationApp({
 					placeholder: 'resp_...',
 				},
 				note: 'Use this to continue a previous conversation (optional)',
+				hidden: true,
 				conditions: [
 					{
 						rule: {
