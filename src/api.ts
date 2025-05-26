@@ -360,7 +360,7 @@ export default defineOperationApi<Options>({
 			// Log successful operation
 			console.log(`OpenAI operation completed: ${operation_type} with model: ${model}`);
 
-			return store_response ? result : { success: true, data: {} };
+			return result;
 
 		} catch (error: unknown) {
 			console.error('OpenAI operation failed:', error);
