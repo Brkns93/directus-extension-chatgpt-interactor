@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 
 type Options = {
 	api_key: string;
-	operation_type: 'text_generation' | 'image_generation' | 'file_search' | 'code_interpreter' | 'embeddings' | 'moderation' | 'list_models';
+	operation_type: 'text_generation' | 'image_generation' | 'image_analysis' | 'file_search' | 'code_interpreter' | 'embeddings' | 'moderation' | 'list_models';
 	model?: string;
 	system_message?: string;
 	user_message?: string;
@@ -11,6 +11,9 @@ type Options = {
 	response_format?: 'text' | 'json_object' | 'json_schema';
 	json_schema?: object;
 	image_prompt?: string;
+	image_url?: string;
+	image_base64?: string;
+	analysis_prompt?: string;
 	search_query?: string;
 	vector_store_ids?: string[];
 	code_input?: string;
@@ -72,6 +75,9 @@ export default defineOperationApi<Options>({
 			response_format = 'text',
 			json_schema,
 			image_prompt,
+			image_url,
+			image_base64,
+			analysis_prompt,
 			search_query,
 			vector_store_ids,
 			code_input,
@@ -212,6 +218,98 @@ export default defineOperationApi<Options>({
 							usage: imageResponse.usage,
 						},
 						response_id: imageResponse.id,
+					};
+					break;
+
+				case 'image_analysis':
+					if (!image_url && !image_base64) {
+						throw new Error('Image URL or image base64 is required for image analysis');
+					}
+
+					const analysisInput = [];
+					
+					if (system_message) {
+						analysisInput.push({
+							role: 'system' as const,
+							content: system_message,
+						});
+					}
+
+					// Create the user message with image content
+					const userContent = [];
+					
+					// Add text prompt if provided
+					if (analysis_prompt) {
+						userContent.push({
+							type: 'text' as const,
+							text: analysis_prompt,
+						});
+					} else {
+						userContent.push({
+							type: 'text' as const,
+							text: 'Please analyze this image and describe what you see, including any text, objects, colors, composition, and other notable features.',
+						});
+					}
+
+					// Add image content
+					if (image_url) {
+						userContent.push({
+							type: 'image_url' as const,
+							image_url: {
+								url: image_url,
+							},
+						});
+					} else if (image_base64) {
+						userContent.push({
+							type: 'image_url' as const,
+							image_url: {
+								url: `data:image/jpeg;base64,${image_base64}`,
+							},
+						});
+					}
+
+					analysisInput.push({
+						role: 'user' as const,
+						content: userContent,
+					});
+
+					const analysisResponseParams: any = {
+						model: model || 'gpt-4o-mini',
+						messages: analysisInput,
+						max_tokens: max_output_tokens,
+					};
+
+					// Handle response format
+					if (response_format === 'json_object') {
+						analysisResponseParams.response_format = {
+							type: 'json_object',
+						};
+					} else if (response_format === 'json_schema') {
+						if (!json_schema) {
+							throw new Error('JSON schema is required when response format is json_schema');
+						}
+						analysisResponseParams.response_format = {
+							type: 'json_schema',
+							json_schema: {
+								name: 'analysis_response',
+								schema: json_schema,
+								strict: true,
+							},
+						};
+					}
+
+					const analysisResponse = await openai.chat.completions.create(analysisResponseParams);
+					
+					result = {
+						success: true,
+						data: {
+							content: analysisResponse.choices[0]?.message?.content || '',
+							model: analysisResponse.model,
+							usage: analysisResponse.usage,
+							finish_reason: analysisResponse.choices[0]?.finish_reason,
+							response_format: response_format,
+						},
+						response_id: analysisResponse.id,
 					};
 					break;
 

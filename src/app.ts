@@ -5,7 +5,7 @@ export default defineOperationApp({
 	name: 'OpenAI Interactor',
 	icon: 'smart_toy',
 	description: 'Interact with OpenAI using the modern Responses API',
-	overview: ({ operation_type, model, user_message, image_prompt, search_query, code_input, text_input }) => [
+	overview: ({ operation_type, model, user_message, image_prompt, analysis_prompt, image_url, search_query, code_input, text_input }) => [
 		{
 			label: 'Operation',
 			text: operation_type || 'Text Generation',
@@ -16,7 +16,7 @@ export default defineOperationApp({
 		},
 		{
 			label: 'Input',
-			text: user_message || image_prompt || search_query || code_input || text_input || 'No input provided',
+			text: user_message || image_prompt || analysis_prompt || search_query || code_input || text_input || image_url || 'No input provided',
 		},
 	],
 	options: [
@@ -45,6 +45,7 @@ export default defineOperationApp({
 					choices: [
 						{ text: 'Text Generation', value: 'text_generation' },
 						{ text: 'Image Generation', value: 'image_generation' },
+						{ text: 'Image Analysis', value: 'image_analysis' },
 						{ text: 'File Search', value: 'file_search' },
 						{ text: 'Code Interpreter', value: 'code_interpreter' },
 						{ text: 'Text Embeddings', value: 'embeddings' },
@@ -100,7 +101,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_generation', 'file_search', 'code_interpreter'],
+								_in: ['text_generation', 'image_generation', 'image_analysis', 'file_search', 'code_interpreter'],
 							},
 						},
 						hidden: false,
@@ -393,6 +394,198 @@ export default defineOperationApp({
 			},
 			schema: {
 				default_value: 'vivid',
+			},
+		},
+
+		// === IMAGE ANALYSIS PARAMETERS ===
+		{
+			field: 'image_url',
+			name: 'Image URL',
+			type: 'string',
+			meta: {
+				width: 'full',
+				interface: 'input',
+				options: {
+					placeholder: 'https://example.com/image.jpg',
+				},
+				note: 'URL of the image to analyze (leave empty if providing base64)',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'image_analysis',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'image_base64',
+			name: 'Image Base64',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'iVBORw0KGgoAAAANSUhEUgAA...',
+				},
+				note: 'Base64 encoded image data (leave empty if providing URL)',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'image_analysis',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'analysis_prompt',
+			name: 'Analysis Prompt',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'Describe what you see in this image...',
+				},
+				note: 'Specific instructions for analyzing the image (optional - default: general analysis)',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'image_analysis',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'system_message',
+			name: 'System Message',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'You are an expert image analyst...',
+				},
+				note: 'System prompt to guide the AI behavior for image analysis',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'image_analysis',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'response_format',
+			name: 'Response Format',
+			type: 'string',
+			meta: {
+				width: 'half',
+				interface: 'select-dropdown',
+				options: {
+					choices: [
+						{ text: 'Text', value: 'text' },
+						{ text: 'JSON Object', value: 'json_object' },
+						{ text: 'JSON Schema', value: 'json_schema' },
+					],
+				},
+				note: 'Format of the AI response',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'image_analysis',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+			schema: {
+				default_value: 'text',
+			},
+		},
+		{
+			field: 'json_schema',
+			name: 'JSON Schema',
+			type: 'json',
+			meta: {
+				width: 'full',
+				interface: 'input-code',
+				options: {
+					language: 'json',
+					placeholder: '{\n  "type": "object",\n  "properties": {\n    "objects": { "type": "array" },\n    "colors": { "type": "array" },\n    "text": { "type": "string" }\n  }\n}',
+				},
+				note: 'JSON schema to structure the image analysis response',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							_and: [
+								{
+									operation_type: {
+										_eq: 'image_analysis',
+									},
+								},
+								{
+									response_format: {
+										_eq: 'json_schema',
+									},
+								},
+							],
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'max_output_tokens',
+			name: 'Max Output Tokens',
+			type: 'integer',
+			meta: {
+				width: 'half',
+				interface: 'input',
+				options: {
+					min: 1,
+					max: 4096,
+					placeholder: '1000',
+				},
+				note: 'Maximum number of tokens to generate',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'image_analysis',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+			schema: {
+				default_value: 1000,
 			},
 		},
 

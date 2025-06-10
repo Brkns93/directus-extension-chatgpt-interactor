@@ -31,6 +31,7 @@ A modern Directus extension that leverages OpenAI's cutting-edge **Responses API
 
 - **Text Generation** - Modern chat and text completion with optional web search and JSON schema responses
 - **Image Generation** - Create images with DALL-E using built-in image generation tool
+- **Image Analysis** - Analyze images using GPT-4o vision capabilities with customizable prompts and structured responses
 - **File Search** - Search through uploaded documents using vector store integration
 - **Code Interpreter** - Execute Python code in a sandboxed environment for data analysis, visualizations, and file processing
 - **Text Embeddings** - Generate vector embeddings for semantic search
@@ -51,6 +52,14 @@ A modern Directus extension that leverages OpenAI's cutting-edge **Responses API
 - Image description prompt
 - Image size, quality, and style options
 - Previous response ID for iterative generation
+
+#### Image Analysis Parameters Only:
+- Image URL or Base64 encoded image data
+- Analysis prompt (optional - defaults to comprehensive analysis)
+- System message for specialized analysis behavior
+- Response format options (Text, JSON Object, JSON Schema)
+- JSON Schema editor for structured analysis responses
+- Max tokens for response length control
 
 #### File Search Parameters Only:
 - Search query input
@@ -147,6 +156,56 @@ When you select "JSON Schema" format, a schema editor appears where you can defi
 - Quality (Standard/HD)
 - Style (Vivid/Natural)
 
+#### Image Analysis (Vision AI)
+**Always Required:**
+- **Image URL** OR **Image Base64**: Provide the image to analyze
+  - URL: Direct link to image (https://example.com/image.jpg)
+  - Base64: Encoded image data for secure/private images
+
+**Optional Customization:**
+- **Analysis Prompt**: Specific instructions for what to analyze
+  - Default: "Please analyze this image and describe what you see, including any text, objects, colors, composition, and other notable features."
+  - Custom: "Extract all text from this document", "Identify the breed of this dog", "Count the people in this photo"
+- **System Message**: Set specialized analysis behavior
+  - "You are an expert medical image analyst"
+  - "You are a professional art critic"
+  - "You are a technical diagram interpreter"
+
+**Structured Output Options:**
+- **Response Format**: Text, JSON Object, or JSON Schema
+- **JSON Schema**: Define exact structure for analysis results
+
+**JSON Schema Example for Image Analysis:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "objects": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "colors": {
+      "type": "array", 
+      "items": { "type": "string" }
+    },
+    "text_detected": { "type": "string" },
+    "scene_description": { "type": "string" },
+    "people_count": { "type": "number" }
+  },
+  "required": ["objects", "scene_description"]
+}
+```
+
+**What Image Analysis Can Do:**
+- **OCR (Text Recognition)**: Extract text from documents, signs, screenshots
+- **Object Detection**: Identify and describe objects, people, animals
+- **Scene Understanding**: Describe environments, settings, activities
+- **Color Analysis**: Identify dominant colors and color schemes
+- **Technical Analysis**: Read charts, diagrams, technical drawings
+- **Medical Imaging**: Analyze medical scans (with appropriate prompting)
+- **Art Analysis**: Critique composition, style, artistic elements
+- **Document Processing**: Extract information from forms, receipts, invoices
+
 #### File Search (Focused Parameters)
 **Only Shows:**
 - Search query
@@ -190,6 +249,19 @@ Enhanced responses with conversation state and format information:
     response_format: "json_schema" // Indicates format used
   },
   response_id: "resp_abc123..." // For conversation continuity
+}
+
+// Image Analysis Response
+{
+  success: true,
+  data: {
+    content: "This image shows a modern living room with...", // or structured JSON
+    model: "gpt-4o-mini",
+    usage: { /* token usage including image processing */ },
+    finish_reason: "stop",
+    response_format: "json_schema" // Indicates format used
+  },
+  response_id: "resp_def456..." // For follow-up analysis
 }
 
 // Code Interpreter Response
