@@ -28,10 +28,9 @@ export default defineOperationApp({
 				width: 'full',
 				interface: 'input',
 				options: {
-					masked: true,
-					placeholder: 'sk-...',
+					placeholder: 'sk-... or {{$last.api_key}}',
 				},
-				note: 'Your OpenAI API key. Keep this secure!',
+				note: 'Your OpenAI API key or Directus placeholder (e.g., {{$last.api_key}}, {{$trigger.api_key}})',
 			},
 		},
 		{
