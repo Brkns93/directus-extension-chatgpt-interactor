@@ -260,10 +260,42 @@ export default defineOperationApi<Options>({
 							},
 						});
 					} else if (image_base64) {
+						// Handle base64 image data
+						let imageDataUrl: string;
+						
+						// Check if the base64 data already has the data URL prefix
+						if (image_base64.startsWith('data:image/')) {
+							imageDataUrl = image_base64;
+						} else {
+							// Detect image format from base64 header or default to png
+							let imageFormat = 'png'; // Default to png for better compatibility
+							
+							// Try to detect image format from base64 header
+							const base64Header = image_base64.substring(0, 20);
+							if (base64Header.startsWith('/9j/') || base64Header.startsWith('iVBO')) {
+								imageFormat = base64Header.startsWith('/9j/') ? 'jpeg' : 'png';
+							} else if (base64Header.startsWith('UklGR')) {
+								imageFormat = 'webp';
+							} else if (base64Header.startsWith('R0lGOD')) {
+								imageFormat = 'gif';
+							}
+							
+							// Clean base64 string (remove any whitespace or newlines)
+							const cleanBase64 = image_base64.replace(/\s+/g, '');
+							
+							// Validate base64 format
+							const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+							if (!base64Regex.test(cleanBase64)) {
+								throw new Error('Invalid base64 format detected. Please ensure the input is correctly encoded in base64 format.');
+							}
+							
+							imageDataUrl = `data:image/${imageFormat};base64,${cleanBase64}`;
+						}
+						
 						userContent.push({
 							type: 'image_url' as const,
 							image_url: {
-								url: `data:image/jpeg;base64,${image_base64}`,
+								url: imageDataUrl,
 							},
 						});
 					}
