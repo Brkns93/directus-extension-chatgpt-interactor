@@ -255,22 +255,16 @@ export default defineOperationApi<Options>({
 					if (image_url) {
 						userContent.push({
 							type: 'input_image' as const,
-							source: {
-								type: 'url' as const,
-								url: image_url,
-							},
+							image_url: image_url,
+							detail: 'high',
 						});
 					} else if (image_base64) {
 						// Handle base64 image data
 						let imageDataUrl: string;
-						let mediaType: string;
 						
 						// Check if the base64 data already has the data URL prefix
 						if (image_base64.startsWith('data:image/')) {
 							imageDataUrl = image_base64;
-							// Extract media type from data URL
-							const match = image_base64.match(/^data:image\/([^;]+)/);
-							mediaType = match ? `image/${match[1]}` : 'image/png';
 						} else {
 							// Detect image format from base64 header or default to png
 							let imageFormat = 'png'; // Default to png for better compatibility
@@ -295,16 +289,12 @@ export default defineOperationApi<Options>({
 							}
 							
 							imageDataUrl = `data:image/${imageFormat};base64,${cleanBase64}`;
-							mediaType = `image/${imageFormat}`;
 						}
 						
 						userContent.push({
 							type: 'input_image' as const,
-							source: {
-								type: 'base64' as const,
-								media_type: mediaType,
-								data: image_base64.startsWith('data:') ? image_base64.split(',')[1] : image_base64,
-							},
+							image_url: imageDataUrl,
+							detail: 'high',
 						});
 					}
 
