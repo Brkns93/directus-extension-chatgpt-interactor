@@ -235,18 +235,18 @@ export default defineOperationApi<Options>({
 						});
 					}
 
-					// Create the user message with image content
+					// Create the user message with image content using Responses API format
 					const userContent = [];
 					
 					// Add text prompt if provided
 					if (analysis_prompt) {
 						userContent.push({
-							type: 'text' as const,
+							type: 'input_text' as const,
 							text: analysis_prompt,
 						});
 					} else {
 						userContent.push({
-							type: 'text' as const,
+							type: 'input_text' as const,
 							text: 'Please analyze this image and describe what you see, including any text, objects, colors, composition, and other notable features.',
 						});
 					}
@@ -254,18 +254,23 @@ export default defineOperationApi<Options>({
 					// Add image content
 					if (image_url) {
 						userContent.push({
-							type: 'image_url' as const,
-							image_url: {
+							type: 'input_image' as const,
+							source: {
+								type: 'url' as const,
 								url: image_url,
 							},
 						});
 					} else if (image_base64) {
 						// Handle base64 image data
 						let imageDataUrl: string;
+						let mediaType: string;
 						
 						// Check if the base64 data already has the data URL prefix
 						if (image_base64.startsWith('data:image/')) {
 							imageDataUrl = image_base64;
+							// Extract media type from data URL
+							const match = image_base64.match(/^data:image\/([^;]+)/);
+							mediaType = match ? `image/${match[1]}` : 'image/png';
 						} else {
 							// Detect image format from base64 header or default to png
 							let imageFormat = 'png'; // Default to png for better compatibility
@@ -290,12 +295,15 @@ export default defineOperationApi<Options>({
 							}
 							
 							imageDataUrl = `data:image/${imageFormat};base64,${cleanBase64}`;
+							mediaType = `image/${imageFormat}`;
 						}
 						
 						userContent.push({
-							type: 'image_url' as const,
-							image_url: {
-								url: imageDataUrl,
+							type: 'input_image' as const,
+							source: {
+								type: 'base64' as const,
+								media_type: mediaType,
+								data: image_base64.startsWith('data:') ? image_base64.split(',')[1] : image_base64,
 							},
 						});
 					}
