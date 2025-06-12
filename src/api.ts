@@ -307,8 +307,9 @@ export default defineOperationApi<Options>({
 
 					const analysisResponseParams: any = {
 						model: model || 'gpt-4o-mini',
-						messages: analysisInput,
-						max_tokens: max_output_tokens,
+						input: analysisInput,
+						max_output_tokens,
+						store: store_response,
 					};
 
 					// Handle response format
@@ -330,15 +331,19 @@ export default defineOperationApi<Options>({
 						};
 					}
 
-					const analysisResponse = await openai.chat.completions.create(analysisResponseParams);
+					if (previous_response_id) {
+						analysisResponseParams.previous_response_id = previous_response_id;
+					}
+
+					const analysisResponse = await openai.responses.create(analysisResponseParams);
 					
 					result = {
 						success: true,
 						data: {
-							content: analysisResponse.choices[0]?.message?.content || '',
+							content: analysisResponse.output_text || '',
 							model: analysisResponse.model,
 							usage: analysisResponse.usage,
-							finish_reason: analysisResponse.choices[0]?.finish_reason,
+							finish_reason: analysisResponse.status,
 							response_format: response_format,
 						},
 						response_id: analysisResponse.id,
