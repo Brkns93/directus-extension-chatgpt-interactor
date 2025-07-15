@@ -203,7 +203,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_eq: 'text_generation',
+								_in: ['text_generation', 'image_analysis', 'file_search_with_image'],
 							},
 						},
 						hidden: false,
@@ -233,7 +233,7 @@ export default defineOperationApp({
 							_and: [
 								{
 									operation_type: {
-										_eq: 'text_generation',
+										_in: ['text_generation', 'image_analysis', 'file_search_with_image'],
 									},
 								},
 								{
@@ -266,7 +266,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_eq: 'text_generation',
+								_in: ['text_generation', 'image_analysis', 'file_search_with_image'],
 							},
 						},
 						hidden: false,
@@ -494,100 +494,7 @@ export default defineOperationApp({
 				],
 			},
 		},
-		{
-			field: 'response_format',
-			name: 'Response Format',
-			type: 'string',
-			meta: {
-				width: 'half',
-				interface: 'select-dropdown',
-				options: {
-					choices: [
-						{ text: 'Text', value: 'text' },
-						{ text: 'JSON Object', value: 'json_object' },
-						{ text: 'JSON Schema', value: 'json_schema' },
-					],
-				},
-				note: 'Format of the AI response',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_in: ['image_analysis', 'file_search_with_image'],
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 'text',
-			},
-		},
-		{
-			field: 'json_schema',
-			name: 'JSON Schema',
-			type: 'json',
-			meta: {
-				width: 'full',
-				interface: 'input-code',
-				options: {
-					language: 'json',
-					placeholder: '{\n  "type": "object",\n  "properties": {\n    "objects": { "type": "array" },\n    "colors": { "type": "array" },\n    "text": { "type": "string" }\n  }\n}',
-				},
-				note: 'JSON schema to structure the image analysis response',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							_and: [
-								{
-									operation_type: {
-										_in: ['image_analysis', 'file_search_with_image'],
-									},
-								},
-								{
-									response_format: {
-										_eq: 'json_schema',
-									},
-								},
-							],
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		{
-			field: 'max_output_tokens',
-			name: 'Max Output Tokens',
-			type: 'integer',
-			meta: {
-				width: 'half',
-				interface: 'input',
-				options: {
-					min: 1,
-					max: 4096,
-					placeholder: '1000',
-				},
-				note: 'Maximum number of tokens to generate',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_in: ['image_analysis', 'file_search_with_image'],
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 1000,
-			},
-		},
+
 
 		// === FILE SEARCH PARAMETERS ===
 		{
