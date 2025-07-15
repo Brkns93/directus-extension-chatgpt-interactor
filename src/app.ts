@@ -414,7 +414,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_eq: 'image_analysis',
+								_in: ['image_analysis', 'file_search_with_image'],
 							},
 						},
 						hidden: false,
@@ -438,7 +438,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_eq: 'image_analysis',
+								_in: ['image_analysis', 'file_search_with_image'],
 							},
 						},
 						hidden: false,
@@ -514,7 +514,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_eq: 'image_analysis',
+								_in: ['image_analysis', 'file_search_with_image'],
 							},
 						},
 						hidden: false,
@@ -544,7 +544,7 @@ export default defineOperationApp({
 							_and: [
 								{
 									operation_type: {
-										_eq: 'image_analysis',
+										_in: ['image_analysis', 'file_search_with_image'],
 									},
 								},
 								{
@@ -577,7 +577,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_eq: 'image_analysis',
+								_in: ['image_analysis', 'file_search_with_image'],
 							},
 						},
 						hidden: false,
@@ -663,100 +663,9 @@ export default defineOperationApp({
 				],
 			},
 		},
-		{
-			field: 'response_format',
-			name: 'Response Format',
-			type: 'string',
-			meta: {
-				width: 'half',
-				interface: 'select-dropdown',
-				options: {
-					choices: [
-						{ text: 'Text', value: 'text' },
-						{ text: 'JSON Object', value: 'json_object' },
-						{ text: 'JSON Schema', value: 'json_schema' },
-					],
-				},
-				note: 'Format of the AI response',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'file_search_with_image',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 'text',
-			},
-		},
-		{
-			field: 'json_schema',
-			name: 'JSON Schema',
-			type: 'json',
-			meta: {
-				width: 'full',
-				interface: 'input-code',
-				options: {
-					language: 'json',
-					placeholder: '{\n  "type": "object",\n  "properties": {\n    "image_analysis": { "type": "string" },\n    "file_search_results": { "type": "array" },\n    "combined_insights": { "type": "string" }\n  }\n}',
-				},
-				note: 'JSON schema to structure the file search with image response',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							_and: [
-								{
-									operation_type: {
-										_eq: 'file_search_with_image',
-									},
-								},
-								{
-									response_format: {
-										_eq: 'json_schema',
-									},
-								},
-							],
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		{
-			field: 'max_output_tokens',
-			name: 'Max Output Tokens',
-			type: 'integer',
-			meta: {
-				width: 'half',
-				interface: 'input',
-				options: {
-					min: 1,
-					max: 4096,
-					placeholder: '1000',
-				},
-				note: 'Maximum number of tokens to generate',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'file_search_with_image',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-			schema: {
-				default_value: 1000,
-			},
-		},
+
+
+
 
 		// === FILE SEARCH WITH IMAGE PARAMETERS ===
 		{
@@ -783,54 +692,7 @@ export default defineOperationApp({
 				],
 			},
 		},
-		{
-			field: 'image_url',
-			name: 'Image URL',
-			type: 'string',
-			meta: {
-				width: 'full',
-				interface: 'input',
-				options: {
-					placeholder: 'https://example.com/image.jpg',
-				},
-				note: 'URL of the image to analyze (leave empty if providing base64)',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'file_search_with_image',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		{
-			field: 'image_base64',
-			name: 'Image Base64',
-			type: 'text',
-			meta: {
-				width: 'full',
-				interface: 'input-multiline',
-				options: {
-					placeholder: 'iVBORw0KGgoAAAANSUhEUgAA...',
-				},
-				note: 'Base64 encoded image data (leave empty if providing URL)',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'file_search_with_image',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
+
 
 		// === CODE INTERPRETER PARAMETERS ===
 		{
