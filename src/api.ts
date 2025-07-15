@@ -5,7 +5,9 @@ type Options = {
 	api_key: string;
 	operation_type: 'text_generation' | 'image_generation' | 'image_analysis' | 'file_search' | 'code_interpreter' | 'embeddings' | 'moderation' | 'list_models';
 	model?: string;
-	system_message?: string;
+	system_message_text?: string;
+	system_message_image?: string;
+	system_message_file?: string;
 	user_message?: string;
 	enable_web_search?: boolean;
 	response_format?: 'text' | 'json_object' | 'json_schema';
@@ -69,7 +71,9 @@ export default defineOperationApi<Options>({
 			api_key,
 			operation_type = 'text_generation',
 			model = 'gpt-4o-mini',
-			system_message,
+			system_message_text,
+			system_message_image,
+			system_message_file,
 			user_message,
 			enable_web_search = false,
 			response_format = 'text',
@@ -109,10 +113,10 @@ export default defineOperationApi<Options>({
 
 					const input = [];
 					
-					if (system_message) {
+					if (system_message_text) {
 						input.push({
 							role: 'system' as const,
-							content: system_message,
+							content: system_message_text,
 						});
 					}
 					
@@ -228,10 +232,10 @@ export default defineOperationApi<Options>({
 
 					const analysisInput = [];
 					
-					if (system_message) {
+					if (system_message_image) {
 						analysisInput.push({
 							role: 'system' as const,
-							content: system_message,
+							content: system_message_image,
 						});
 					}
 
@@ -357,14 +361,23 @@ export default defineOperationApi<Options>({
 						throw new Error('Vector store IDs are required for file search');
 					}
 
+					const fileSearchInput = [];
+					
+					if (system_message_file) {
+						fileSearchInput.push({
+							role: 'system' as const,
+							content: system_message_file,
+						});
+					}
+
+					fileSearchInput.push({
+						role: 'user' as const,
+						content: search_query,
+					});
+
 					const fileSearchParams: any = {
 						model,
-						input: [
-							{
-								role: 'user' as const,
-								content: search_query,
-							}
-						],
+						input: fileSearchInput,
 						tools: [
 							{
 								type: 'file_search' as const,

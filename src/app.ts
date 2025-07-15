@@ -111,7 +111,7 @@ export default defineOperationApp({
 		
 		// === TEXT GENERATION PARAMETERS ===
 		{
-			field: 'system_message',
+			field: 'system_message_text',
 			name: 'System Message',
 			type: 'text',
 			meta: {
@@ -470,7 +470,7 @@ export default defineOperationApp({
 			},
 		},
 		{
-			field: 'system_message',
+			field: 'system_message_image',
 			name: 'System Message',
 			type: 'text',
 			meta: {
@@ -589,6 +589,30 @@ export default defineOperationApp({
 		},
 
 		// === FILE SEARCH PARAMETERS ===
+		{
+			field: 'system_message_file',
+			name: 'System Message',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'You are an expert file search assistant...',
+				},
+				note: 'System prompt to guide the AI behavior for file search',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
 		{
 			field: 'search_query',
 			name: 'Search Query',
