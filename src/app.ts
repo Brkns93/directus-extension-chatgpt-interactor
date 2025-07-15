@@ -624,13 +624,13 @@ export default defineOperationApp({
 				options: {
 					placeholder: 'What would you like to search for in the files?',
 				},
-				note: 'Query to search through uploaded documents',
+				note: 'Query to search through uploaded documents (for file search with image, this will be combined with image analysis)',
 				hidden: true,
 				conditions: [
 					{
 						rule: {
 							operation_type: {
-								_eq: 'file_search',
+								_in: ['file_search', 'file_search_with_image'],
 							},
 						},
 						hidden: false,
@@ -655,130 +655,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_eq: 'file_search',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-
-		// === FILE SEARCH WITH IMAGE PARAMETERS ===
-		{
-			field: 'system_message_file_image',
-			name: 'System Message',
-			type: 'text',
-			meta: {
-				width: 'full',
-				interface: 'input-multiline',
-				options: {
-					placeholder: 'You are an expert at analyzing images and searching through documents...',
-				},
-				note: 'System prompt to guide the AI behavior for file search with image analysis',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'file_search_with_image',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		{
-			field: 'image_url',
-			name: 'Image URL',
-			type: 'string',
-			meta: {
-				width: 'full',
-				interface: 'input',
-				options: {
-					placeholder: 'https://example.com/image.jpg',
-				},
-				note: 'URL of the image to analyze (leave empty if providing base64)',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'file_search_with_image',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		{
-			field: 'image_base64',
-			name: 'Image Base64',
-			type: 'text',
-			meta: {
-				width: 'full',
-				interface: 'input-multiline',
-				options: {
-					placeholder: 'iVBORw0KGgoAAAANSUhEUgAA...',
-				},
-				note: 'Base64 encoded image data (leave empty if providing URL)',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'file_search_with_image',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		{
-			field: 'search_query',
-			name: 'Search Query',
-			type: 'text',
-			meta: {
-				width: 'full',
-				interface: 'input-multiline',
-				options: {
-					placeholder: 'What would you like to search for in the files based on this image?',
-				},
-				note: 'Query to search through uploaded documents based on the image content',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'file_search_with_image',
-							},
-						},
-						hidden: false,
-					},
-				],
-			},
-		},
-		{
-			field: 'vector_store_ids',
-			name: 'Vector Store IDs',
-			type: 'json',
-			meta: {
-				width: 'full',
-				interface: 'input-code',
-				options: {
-					language: 'json',
-					placeholder: '["vs_123", "vs_456"]',
-				},
-				note: 'Array of vector store IDs to search in (required for file search with image)',
-				hidden: true,
-				conditions: [
-					{
-						rule: {
-							operation_type: {
-								_eq: 'file_search_with_image',
+								_in: ['file_search', 'file_search_with_image'],
 							},
 						},
 						hidden: false,
@@ -878,6 +755,80 @@ export default defineOperationApp({
 			},
 			schema: {
 				default_value: 1000,
+			},
+		},
+
+		// === FILE SEARCH WITH IMAGE PARAMETERS ===
+		{
+			field: 'system_message_file_image',
+			name: 'System Message',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'You are an expert at analyzing images and searching through documents...',
+				},
+				note: 'System prompt to guide the AI behavior for file search with image analysis',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search_with_image',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'image_url',
+			name: 'Image URL',
+			type: 'string',
+			meta: {
+				width: 'full',
+				interface: 'input',
+				options: {
+					placeholder: 'https://example.com/image.jpg',
+				},
+				note: 'URL of the image to analyze (leave empty if providing base64)',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search_with_image',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'image_base64',
+			name: 'Image Base64',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'iVBORw0KGgoAAAANSUhEUgAA...',
+				},
+				note: 'Base64 encoded image data (leave empty if providing URL)',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search_with_image',
+							},
+						},
+						hidden: false,
+					},
+				],
 			},
 		},
 
