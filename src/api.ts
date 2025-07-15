@@ -3,11 +3,12 @@ import OpenAI from 'openai';
 
 type Options = {
 	api_key: string;
-	operation_type: 'text_generation' | 'image_generation' | 'image_analysis' | 'file_search' | 'code_interpreter' | 'embeddings' | 'moderation' | 'list_models';
+	operation_type: 'text_generation' | 'image_generation' | 'image_analysis' | 'file_search' | 'file_search_with_image' | 'code_interpreter' | 'embeddings' | 'moderation' | 'list_models';
 	model?: string;
 	system_message_text?: string;
 	system_message_image?: string;
 	system_message_file?: string;
+	system_message_file_image?: string;
 	user_message?: string;
 	enable_web_search?: boolean;
 	response_format?: 'text' | 'json_object' | 'json_schema';
@@ -74,6 +75,7 @@ export default defineOperationApi<Options>({
 			system_message_text,
 			system_message_image,
 			system_message_file,
+			system_message_file_image,
 			user_message,
 			enable_web_search = false,
 			response_format = 'text',
@@ -401,6 +403,140 @@ export default defineOperationApi<Options>({
 							usage: fileResponse.usage,
 						},
 						response_id: fileResponse.id,
+					};
+					break;
+
+				case 'file_search_with_image':
+					if (!search_query) {
+						throw new Error('Search query is required for file search with image');
+					}
+
+					if (!vector_store_ids || vector_store_ids.length === 0) {
+						throw new Error('Vector store IDs are required for file search with image');
+					}
+
+					if (!image_url && !image_base64) {
+						throw new Error('Image URL or image base64 is required for file search with image');
+					}
+
+					const fileSearchWithImageInput = [];
+					
+					if (system_message_file_image) {
+						fileSearchWithImageInput.push({
+							role: 'system' as const,
+							content: system_message_file_image,
+						});
+					}
+
+					// Create the user message with both text and image content
+					const userContentWithImage = [];
+					
+					// Add text query
+					userContentWithImage.push({
+						type: 'input_text' as const,
+						text: search_query,
+					});
+
+					// Add image content
+					if (image_url) {
+						userContentWithImage.push({
+							type: 'input_image' as const,
+							image_url: image_url,
+							detail: 'high',
+						});
+					} else if (image_base64) {
+						// Handle base64 image data
+						let imageDataUrl: string;
+						
+						// Check if the base64 data already has the data URL prefix
+						if (image_base64.startsWith('data:image/')) {
+							imageDataUrl = image_base64;
+						} else {
+							// Detect image format from base64 header or default to png
+							let imageFormat = 'png'; // Default to png for better compatibility
+							
+							// Try to detect image format from base64 header
+							const base64Header = image_base64.substring(0, 20);
+							if (base64Header.startsWith('/9j/') || base64Header.startsWith('iVBO')) {
+								imageFormat = base64Header.startsWith('/9j/') ? 'jpeg' : 'png';
+							} else if (base64Header.startsWith('UklGR')) {
+								imageFormat = 'webp';
+							} else if (base64Header.startsWith('R0lGOD')) {
+								imageFormat = 'gif';
+							}
+							
+							// Clean base64 string (remove any whitespace or newlines)
+							const cleanBase64 = image_base64.replace(/\s+/g, '');
+							
+							// Validate base64 format
+							const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+							if (!base64Regex.test(cleanBase64)) {
+								throw new Error('Invalid base64 format detected. Please ensure the input is correctly encoded in base64 format.');
+							}
+							
+							imageDataUrl = `data:image/${imageFormat};base64,${cleanBase64}`;
+						}
+						
+						userContentWithImage.push({
+							type: 'input_image' as const,
+							image_url: imageDataUrl,
+							detail: 'high',
+						});
+					}
+
+					fileSearchWithImageInput.push({
+						role: 'user' as const,
+						content: userContentWithImage,
+					});
+
+					const fileSearchWithImageParams: any = {
+						model: model || 'gpt-4o-mini',
+						input: fileSearchWithImageInput,
+						tools: [
+							{
+								type: 'file_search' as const,
+								vector_store_ids: vector_store_ids,
+							}
+						],
+						max_output_tokens,
+						store: store_response,
+					};
+
+					// Handle response format
+					if (response_format === 'json_object') {
+						fileSearchWithImageParams.response_format = {
+							type: 'json_object',
+						};
+					} else if (response_format === 'json_schema') {
+						if (!json_schema) {
+							throw new Error('JSON schema is required when response format is json_schema');
+						}
+						fileSearchWithImageParams.response_format = {
+							type: 'json_schema',
+							json_schema: {
+								name: 'file_search_with_image_response',
+								schema: json_schema,
+								strict: true,
+							},
+						};
+					}
+
+					if (previous_response_id) {
+						fileSearchWithImageParams.previous_response_id = previous_response_id;
+					}
+
+					const fileSearchWithImageResponse = await openai.responses.create(fileSearchWithImageParams);
+					
+					result = {
+						success: true,
+						data: {
+							content: fileSearchWithImageResponse.output_text || '',
+							model: fileSearchWithImageResponse.model,
+							usage: fileSearchWithImageResponse.usage,
+							finish_reason: fileSearchWithImageResponse.status,
+							response_format: response_format,
+						},
+						response_id: fileSearchWithImageResponse.id,
 					};
 					break;
 

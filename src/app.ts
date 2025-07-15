@@ -46,6 +46,7 @@ export default defineOperationApp({
 						{ text: 'Image Generation', value: 'image_generation' },
 						{ text: 'Image Analysis', value: 'image_analysis' },
 						{ text: 'File Search', value: 'file_search' },
+						{ text: 'File Search with Image', value: 'file_search_with_image' },
 						{ text: 'Code Interpreter', value: 'code_interpreter' },
 						{ text: 'Text Embeddings', value: 'embeddings' },
 						{ text: 'Content Moderation', value: 'moderation' },
@@ -100,7 +101,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_generation', 'image_analysis', 'file_search', 'code_interpreter'],
+								_in: ['text_generation', 'image_generation', 'image_analysis', 'file_search', 'file_search_with_image', 'code_interpreter'],
 							},
 						},
 						hidden: false,
@@ -663,6 +664,223 @@ export default defineOperationApp({
 			},
 		},
 
+		// === FILE SEARCH WITH IMAGE PARAMETERS ===
+		{
+			field: 'system_message_file_image',
+			name: 'System Message',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'You are an expert at analyzing images and searching through documents...',
+				},
+				note: 'System prompt to guide the AI behavior for file search with image analysis',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search_with_image',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'image_url',
+			name: 'Image URL',
+			type: 'string',
+			meta: {
+				width: 'full',
+				interface: 'input',
+				options: {
+					placeholder: 'https://example.com/image.jpg',
+				},
+				note: 'URL of the image to analyze (leave empty if providing base64)',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search_with_image',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'image_base64',
+			name: 'Image Base64',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'iVBORw0KGgoAAAANSUhEUgAA...',
+				},
+				note: 'Base64 encoded image data (leave empty if providing URL)',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search_with_image',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'search_query',
+			name: 'Search Query',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'What would you like to search for in the files based on this image?',
+				},
+				note: 'Query to search through uploaded documents based on the image content',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search_with_image',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'vector_store_ids',
+			name: 'Vector Store IDs',
+			type: 'json',
+			meta: {
+				width: 'full',
+				interface: 'input-code',
+				options: {
+					language: 'json',
+					placeholder: '["vs_123", "vs_456"]',
+				},
+				note: 'Array of vector store IDs to search in (required for file search with image)',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search_with_image',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'response_format',
+			name: 'Response Format',
+			type: 'string',
+			meta: {
+				width: 'half',
+				interface: 'select-dropdown',
+				options: {
+					choices: [
+						{ text: 'Text', value: 'text' },
+						{ text: 'JSON Object', value: 'json_object' },
+						{ text: 'JSON Schema', value: 'json_schema' },
+					],
+				},
+				note: 'Format of the AI response',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search_with_image',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+			schema: {
+				default_value: 'text',
+			},
+		},
+		{
+			field: 'json_schema',
+			name: 'JSON Schema',
+			type: 'json',
+			meta: {
+				width: 'full',
+				interface: 'input-code',
+				options: {
+					language: 'json',
+					placeholder: '{\n  "type": "object",\n  "properties": {\n    "image_analysis": { "type": "string" },\n    "file_search_results": { "type": "array" },\n    "combined_insights": { "type": "string" }\n  }\n}',
+				},
+				note: 'JSON schema to structure the file search with image response',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							_and: [
+								{
+									operation_type: {
+										_eq: 'file_search_with_image',
+									},
+								},
+								{
+									response_format: {
+										_eq: 'json_schema',
+									},
+								},
+							],
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'max_output_tokens',
+			name: 'Max Output Tokens',
+			type: 'integer',
+			meta: {
+				width: 'half',
+				interface: 'input',
+				options: {
+					min: 1,
+					max: 4096,
+					placeholder: '1000',
+				},
+				note: 'Maximum number of tokens to generate',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_search_with_image',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+			schema: {
+				default_value: 1000,
+			},
+		},
+
 		// === CODE INTERPRETER PARAMETERS ===
 		{
 			field: 'code_input',
@@ -729,7 +947,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_generation', 'file_search', 'code_interpreter'],
+								_in: ['text_generation', 'image_generation', 'file_search', 'file_search_with_image', 'code_interpreter'],
 							},
 						},
 						hidden: false,
