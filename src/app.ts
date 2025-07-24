@@ -103,7 +103,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_generation', 'image_analysis', 'file_search', 'file_search_with_image', 'code_interpreter'],
+								_in: ['text_generation', 'image_generation', 'image_analysis', 'file_search', 'file_search_with_image', 'file_analysis', 'file_analysis_with_vector_search', 'code_interpreter'],
 							},
 						},
 						hidden: false,

@@ -762,10 +762,7 @@ export default defineOperationApi<Options>({
 						throw new Error('File analysis prompt is required for file analysis with vector search');
 					}
 
-					if (!vector_store_ids || vector_store_ids.length === 0) {
-						throw new Error('Vector store IDs are required for file analysis with vector search');
-					}
-
+					// vector_store_ids is now optional
 					// Create the input for file analysis with vector search
 					const fileAnalysisVectorInput = [];
 					
@@ -831,15 +828,19 @@ export default defineOperationApi<Options>({
 					const fileAnalysisVectorParams: any = {
 						model: model || 'gpt-4o-mini',
 						input: fileAnalysisVectorInput,
-						tools: [
-							{
-								type: 'file_search' as const,
-								vector_store_ids: vector_store_ids,
-							}
-						],
 						max_output_tokens,
 						store: store_response,
 					};
+
+					// Only add the file_search tool if vector_store_ids is provided and not empty
+					if (vector_store_ids && vector_store_ids.length > 0) {
+						fileAnalysisVectorParams.tools = [
+							{
+								type: 'file_search' as const,
+								vector_store_ids: vector_store_ids,
+							},
+						];
+					}
 
 					// Handle response format
 					if (response_format === 'json_object') {
@@ -875,7 +876,7 @@ export default defineOperationApi<Options>({
 							finish_reason: fileAnalysisVectorResponse.status,
 							response_format: response_format,
 							processed_files_count: file_base64_array ? file_base64_array.length : 0,
-							vector_search_enabled: true,
+							vector_search_enabled: !!(vector_store_ids && vector_store_ids.length > 0),
 						},
 						response_id: fileAnalysisVectorResponse.id,
 					};
