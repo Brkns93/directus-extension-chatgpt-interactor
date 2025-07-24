@@ -48,6 +48,7 @@ export default defineOperationApp({
 						{ text: 'File Search', value: 'file_search' },
 						{ text: 'File Search with Image', value: 'file_search_with_image' },
 						{ text: 'File Analysis', value: 'file_analysis' },
+						{ text: 'File Analysis with Vector Search', value: 'file_analysis_with_vector_search' },
 						{ text: 'Code Interpreter', value: 'code_interpreter' },
 						{ text: 'Text Embeddings', value: 'embeddings' },
 						{ text: 'Content Moderation', value: 'moderation' },
@@ -204,7 +205,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_analysis', 'file_search_with_image', 'file_analysis'],
+								_in: ['text_generation', 'image_analysis', 'file_search_with_image', 'file_analysis', 'file_analysis_with_vector_search'],
 							},
 						},
 						hidden: false,
@@ -234,7 +235,7 @@ export default defineOperationApp({
 							_and: [
 								{
 									operation_type: {
-										_in: ['text_generation', 'image_analysis', 'file_search_with_image', 'file_analysis'],
+										_in: ['text_generation', 'image_analysis', 'file_search_with_image', 'file_analysis', 'file_analysis_with_vector_search'],
 									},
 								},
 								{
@@ -267,7 +268,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_analysis', 'file_search_with_image', 'file_analysis'],
+								_in: ['text_generation', 'image_analysis', 'file_search_with_image', 'file_analysis', 'file_analysis_with_vector_search'],
 							},
 						},
 						hidden: false,
@@ -557,13 +558,13 @@ export default defineOperationApp({
 					language: 'json',
 					placeholder: '["vs_123", "vs_456"]',
 				},
-				note: 'Array of vector store IDs to search in (required for file search)',
+				note: 'Array of vector store IDs to search in (required for file search and file analysis with vector search)',
 				hidden: true,
 				conditions: [
 					{
 						rule: {
 							operation_type: {
-								_in: ['file_search', 'file_search_with_image'],
+								_in: ['file_search', 'file_search_with_image', 'file_analysis_with_vector_search'],
 							},
 						},
 						hidden: false,
@@ -628,6 +629,30 @@ export default defineOperationApp({
 			},
 		},
 		{
+			field: 'system_message_file_analysis_vector',
+			name: 'System Message',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'You are an expert at analyzing documents and searching through knowledge bases...',
+				},
+				note: 'System prompt to guide the AI behavior for file analysis with vector search',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_analysis_with_vector_search',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
 			field: 'file_analysis_prompt',
 			name: 'Analysis Prompt',
 			type: 'text',
@@ -643,7 +668,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_eq: 'file_analysis',
+								_in: ['file_analysis', 'file_analysis_with_vector_search'],
 							},
 						},
 						hidden: false,
@@ -652,23 +677,23 @@ export default defineOperationApp({
 			},
 		},
 		{
-			field: 'uploaded_files',
-			name: 'Uploaded Files',
+			field: 'file_base64_array',
+			name: 'File Base64 Array',
 			type: 'json',
 			meta: {
 				width: 'full',
 				interface: 'input-code',
 				options: {
 					language: 'json',
-					placeholder: '[\n  {\n    "filename": "document.pdf",\n    "content": "base64_encoded_content",\n    "mime_type": "application/pdf"\n  }\n]',
+					placeholder: '["base64_content_1", "base64_content_2", "base64_content_3"]',
 				},
-				note: 'Array of files to analyze. Each file should have filename, base64 content, and optional mime_type. Files are automatically cleaned up after processing.',
+				note: 'Array of base64 encoded file contents. File types are automatically detected from the base64 headers. Supports PDF, DOCX, images, and other document formats. Optional for vector search operations.',
 				hidden: true,
 				conditions: [
 					{
 						rule: {
 							operation_type: {
-								_eq: 'file_analysis',
+								_in: ['file_analysis', 'file_analysis_with_vector_search'],
 							},
 						},
 						hidden: false,
@@ -743,7 +768,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_generation', 'file_search', 'file_search_with_image', 'file_analysis', 'code_interpreter'],
+								_in: ['text_generation', 'image_generation', 'file_search', 'file_search_with_image', 'file_analysis', 'file_analysis_with_vector_search', 'code_interpreter'],
 							},
 						},
 						hidden: false,
