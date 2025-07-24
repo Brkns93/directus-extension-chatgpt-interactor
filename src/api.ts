@@ -762,10 +762,8 @@ export default defineOperationApi<Options>({
 						throw new Error('File analysis prompt is required for file analysis with vector search');
 					}
 
-					// vector_store_ids is now optional
-					// Create the input for file analysis with vector search
+					// vector_store_ids is optional
 					const fileAnalysisVectorInput = [];
-					
 					if (system_message_file_analysis_vector) {
 						fileAnalysisVectorInput.push({
 							role: 'system' as const,
@@ -773,50 +771,57 @@ export default defineOperationApi<Options>({
 						});
 					}
 
-					// Create user content with text, file data, and vector search
 					const userContentWithFilesAndVector = [];
-					
-					// Add text prompt
 					userContentWithFilesAndVector.push({
 						type: 'input_text' as const,
 						text: file_analysis_prompt,
 					});
 
-					// Add file data directly as base64 (if provided)
+					// Track uploaded file IDs for cleanup
+					const uploadedFileIds: string[] = [];
+
 					if (file_base64_array && file_base64_array.length > 0) {
 						for (let i = 0; i < file_base64_array.length; i++) {
-							const base64Data = file_base64_array[i];
-							
-							if (!base64Data) continue;
-							
-							// Detect file type from base64 header
-							let mimeType = 'application/octet-stream';
-							const header = base64Data.substring(0, 20);
-							
-							if (header.startsWith('/9j/') || header.startsWith('iVBO')) {
-								mimeType = 'image/jpeg';
-							} else if (header.startsWith('iVBORw0KGgo')) {
-								mimeType = 'image/png';
-							} else if (header.startsWith('UklGR')) {
-								mimeType = 'image/webp';
-							} else if (header.startsWith('R0lGOD')) {
-								mimeType = 'image/gif';
-							} else if (header.startsWith('JVBERi0')) {
-								mimeType = 'application/pdf';
-							} else if (header.startsWith('UEsDBBQA')) {
-								mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-							} else if (header.startsWith('PK')) {
-								mimeType = 'application/zip';
+							const fileDataUrl = file_base64_array[i];
+							if (!fileDataUrl) continue;
+
+							if (fileDataUrl.startsWith('data:image/')) {
+								// Use as data URL for images
+								userContentWithFilesAndVector.push({
+									type: 'input_image' as const,
+									image_url: fileDataUrl,
+									detail: 'high',
+								});
+							} else if (fileDataUrl.startsWith('data:')) {
+								// Parse MIME type and base64
+								const matches = fileDataUrl.match(/^data:([^;]+);base64,(.*)$/);
+								if (!matches) continue;
+								const mimeType = matches[1];
+								const base64Data = typeof matches[2] === 'string' ? matches[2] : '';
+								if (!base64Data) continue;
+								// Try to guess filename extension from MIME type
+								let ext = 'bin';
+								if (mimeType === 'application/pdf') ext = 'pdf';
+								else if (mimeType === 'text/plain') ext = 'txt';
+								else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') ext = 'docx';
+								else if (mimeType === 'text/markdown') ext = 'md';
+								else if (mimeType === 'text/html') ext = 'html';
+								else if (mimeType === 'text/csv') ext = 'csv';
+								else if (mimeType === 'application/json') ext = 'json';
+								const filename = `file_${i + 1}.${ext}`;
+								const buffer = Buffer.from(base64Data, 'base64');
+								// Upload to OpenAI
+								const fileObject = new File([buffer], filename, { type: mimeType });
+								const uploadedFile = await openai.files.create({
+									file: fileObject,
+									purpose: 'assistants',
+								});
+								uploadedFileIds.push(uploadedFile.id);
+								userContentWithFilesAndVector.push({
+									type: 'input_file' as const,
+									file_id: uploadedFile.id,
+								});
 							}
-							
-							// Create data URL
-							const dataUrl = `data:${mimeType};base64,${base64Data}`;
-							
-							// Add as file input
-							userContentWithFilesAndVector.push({
-								type: 'input_file' as const,
-								file_url: dataUrl,
-							});
 						}
 					}
 
@@ -831,8 +836,6 @@ export default defineOperationApi<Options>({
 						max_output_tokens,
 						store: store_response,
 					};
-
-					// Only add the file_search tool if vector_store_ids is provided and not empty
 					if (vector_store_ids && vector_store_ids.length > 0) {
 						fileAnalysisVectorParams.tools = [
 							{
@@ -841,8 +844,6 @@ export default defineOperationApi<Options>({
 							},
 						];
 					}
-
-					// Handle response format
 					if (response_format === 'json_object') {
 						fileAnalysisVectorParams.response_format = {
 							type: 'json_object',
@@ -860,13 +861,20 @@ export default defineOperationApi<Options>({
 							},
 						};
 					}
-
 					if (previous_response_id) {
 						fileAnalysisVectorParams.previous_response_id = previous_response_id;
 					}
-
 					const fileAnalysisVectorResponse = await openai.responses.create(fileAnalysisVectorParams);
-					
+
+					// Clean up uploaded files
+					for (const fileId of uploadedFileIds) {
+						try {
+							await openai.files.del(fileId);
+						} catch (error) {
+							console.warn(`Failed to delete file ${fileId}:`, error);
+						}
+					}
+
 					result = {
 						success: true,
 						data: {
