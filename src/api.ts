@@ -3,12 +3,13 @@ import OpenAI from 'openai';
 
 type Options = {
 	api_key: string;
-	operation_type: 'text_generation' | 'image_generation' | 'image_analysis' | 'file_search' | 'file_search_with_image' | 'code_interpreter' | 'embeddings' | 'moderation' | 'list_models';
+	operation_type: 'text_generation' | 'image_generation' | 'image_analysis' | 'file_search' | 'file_search_with_image' | 'code_interpreter' | 'embeddings' | 'moderation' | 'list_models' | 'file_analysis';
 	model?: string;
 	system_message_text?: string;
 	system_message_image?: string;
 	system_message_file?: string;
 	system_message_file_image?: string;
+	system_message_file_analysis?: string;
 	user_message?: string;
 	enable_web_search?: boolean;
 	response_format?: 'text' | 'json_object' | 'json_schema';
@@ -21,6 +22,12 @@ type Options = {
 	vector_store_ids?: string[];
 	code_input?: string;
 	text_input?: string;
+	file_analysis_prompt?: string;
+	uploaded_files?: Array<{
+		filename: string;
+		content: string; // base64 encoded file content
+		mime_type?: string;
+	}>;
 	temperature?: number;
 	max_output_tokens?: number;
 	image_size?: '1024x1024' | '1792x1024' | '1024x1792' | '512x512' | '256x256';
@@ -76,6 +83,7 @@ export default defineOperationApi<Options>({
 			system_message_image,
 			system_message_file,
 			system_message_file_image,
+			system_message_file_analysis,
 			user_message,
 			enable_web_search = false,
 			response_format = 'text',
@@ -88,6 +96,8 @@ export default defineOperationApi<Options>({
 			vector_store_ids,
 			code_input,
 			text_input,
+			file_analysis_prompt,
+			uploaded_files,
 			max_output_tokens = 1000,
 			image_size = '1024x1024',
 			image_quality = 'standard',
@@ -631,6 +641,126 @@ export default defineOperationApi<Options>({
 						data: {
 							models: models.data,
 						},
+					};
+					break;
+
+				case 'file_analysis':
+					if (!file_analysis_prompt) {
+						throw new Error('File analysis prompt is required for file analysis');
+					}
+
+					if (!uploaded_files || uploaded_files.length === 0) {
+						throw new Error('At least one file is required for file analysis');
+					}
+
+					// Upload files to OpenAI
+					const uploadedFileIds = [];
+					for (const file of uploaded_files) {
+						try {
+							// Convert base64 to buffer
+							const fileBuffer = Buffer.from(file.content, 'base64');
+							
+							// Create a File-like object for OpenAI
+							const fileBlob = new Blob([fileBuffer], { type: file.mime_type || 'application/octet-stream' });
+							const fileObject = new File([fileBlob], file.filename, { type: file.mime_type || 'application/octet-stream' });
+							
+							// Upload file to OpenAI
+							const uploadedFile = await openai.files.create({
+								file: fileObject,
+								purpose: 'assistants',
+							});
+
+							uploadedFileIds.push(uploadedFile.id);
+						} catch (error) {
+							console.error(`Failed to upload file ${file.filename}:`, error);
+							throw new Error(`Failed to upload file ${file.filename}: ${getErrorMessage(error)}`);
+						}
+					}
+
+					// Create the input for file analysis
+					const fileAnalysisInput = [];
+					
+					if (system_message_file_analysis) {
+						fileAnalysisInput.push({
+							role: 'system' as const,
+							content: system_message_file_analysis,
+						});
+					}
+
+					// Create user content with text and file references
+					const userContentWithFiles = [];
+					
+					// Add text prompt
+					userContentWithFiles.push({
+						type: 'input_text' as const,
+						text: file_analysis_prompt,
+					});
+
+					// Add file references
+					for (const fileId of uploadedFileIds) {
+						userContentWithFiles.push({
+							type: 'input_file' as const,
+							file_id: fileId,
+						});
+					}
+
+					fileAnalysisInput.push({
+						role: 'user' as const,
+						content: userContentWithFiles,
+					});
+
+					const fileAnalysisParams: any = {
+						model: model || 'gpt-4o-mini',
+						input: fileAnalysisInput,
+						max_output_tokens,
+						store: store_response,
+					};
+
+					// Handle response format
+					if (response_format === 'json_object') {
+						fileAnalysisParams.response_format = {
+							type: 'json_object',
+						};
+					} else if (response_format === 'json_schema') {
+						if (!json_schema) {
+							throw new Error('JSON schema is required when response format is json_schema');
+						}
+						fileAnalysisParams.response_format = {
+							type: 'json_schema',
+							json_schema: {
+								name: 'file_analysis_response',
+								schema: json_schema,
+								strict: true,
+							},
+						};
+					}
+
+					if (previous_response_id) {
+						fileAnalysisParams.previous_response_id = previous_response_id;
+					}
+
+					const fileAnalysisResponse = await openai.responses.create(fileAnalysisParams);
+					
+					// Clean up uploaded files
+					for (const fileId of uploadedFileIds) {
+						try {
+							await openai.files.del(fileId);
+						} catch (error) {
+							console.warn(`Failed to delete file ${fileId}:`, error);
+						}
+					}
+					
+					result = {
+						success: true,
+						data: {
+							content: fileAnalysisResponse.output_text || '',
+							model: fileAnalysisResponse.model,
+							usage: fileAnalysisResponse.usage,
+							finish_reason: fileAnalysisResponse.status,
+							response_format: response_format,
+							processed_files: uploaded_files.map(f => f.filename),
+						},
+						response_id: fileAnalysisResponse.id,
 					};
 					break;
 

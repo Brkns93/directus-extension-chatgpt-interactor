@@ -5,7 +5,7 @@ export default defineOperationApp({
 	name: 'OpenAI Interactor',
 	icon: 'smart_toy',
 	description: 'Interact with OpenAI using the modern Responses API',
-	overview: ({ operation_type, model, user_message, image_prompt, analysis_prompt, image_url, search_query, code_input, text_input }) => [
+	overview: ({ operation_type, model, user_message, image_prompt, analysis_prompt, image_url, search_query, code_input, text_input, file_analysis_prompt }) => [
 		{
 			label: 'Operation',
 			text: operation_type || 'Text Generation',
@@ -16,7 +16,7 @@ export default defineOperationApp({
 		},
 		{
 			label: 'Input',
-			text: user_message || image_prompt || analysis_prompt || search_query || code_input || text_input || image_url || 'No input provided',
+			text: user_message || image_prompt || analysis_prompt || search_query || code_input || text_input || image_url || file_analysis_prompt || 'No input provided',
 		},
 	],
 	options: [
@@ -47,6 +47,7 @@ export default defineOperationApp({
 						{ text: 'Image Analysis', value: 'image_analysis' },
 						{ text: 'File Search', value: 'file_search' },
 						{ text: 'File Search with Image', value: 'file_search_with_image' },
+						{ text: 'File Analysis', value: 'file_analysis' },
 						{ text: 'Code Interpreter', value: 'code_interpreter' },
 						{ text: 'Text Embeddings', value: 'embeddings' },
 						{ text: 'Content Moderation', value: 'moderation' },
@@ -203,7 +204,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_analysis', 'file_search_with_image'],
+								_in: ['text_generation', 'image_analysis', 'file_search_with_image', 'file_analysis'],
 							},
 						},
 						hidden: false,
@@ -233,7 +234,7 @@ export default defineOperationApp({
 							_and: [
 								{
 									operation_type: {
-										_in: ['text_generation', 'image_analysis', 'file_search_with_image'],
+										_in: ['text_generation', 'image_analysis', 'file_search_with_image', 'file_analysis'],
 									},
 								},
 								{
@@ -266,7 +267,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_analysis', 'file_search_with_image'],
+								_in: ['text_generation', 'image_analysis', 'file_search_with_image', 'file_analysis'],
 							},
 						},
 						hidden: false,
@@ -601,6 +602,81 @@ export default defineOperationApp({
 		},
 
 
+		// === FILE ANALYSIS PARAMETERS ===
+		{
+			field: 'system_message_file_analysis',
+			name: 'System Message',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'You are an expert at analyzing documents and files...',
+				},
+				note: 'System prompt to guide the AI behavior for file analysis',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_analysis',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'file_analysis_prompt',
+			name: 'Analysis Prompt',
+			type: 'text',
+			meta: {
+				width: 'full',
+				interface: 'input-multiline',
+				options: {
+					placeholder: 'Please analyze these files and...',
+				},
+				note: 'Your prompt for analyzing the uploaded files',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_analysis',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+		{
+			field: 'uploaded_files',
+			name: 'Uploaded Files',
+			type: 'json',
+			meta: {
+				width: 'full',
+				interface: 'input-code',
+				options: {
+					language: 'json',
+					placeholder: '[\n  {\n    "filename": "document.pdf",\n    "content": "base64_encoded_content",\n    "mime_type": "application/pdf"\n  }\n]',
+				},
+				note: 'Array of files to analyze. Each file should have filename, base64 content, and optional mime_type. Files are automatically cleaned up after processing.',
+				hidden: true,
+				conditions: [
+					{
+						rule: {
+							operation_type: {
+								_eq: 'file_analysis',
+							},
+						},
+						hidden: false,
+					},
+				],
+			},
+		},
+
 		// === CODE INTERPRETER PARAMETERS ===
 		{
 			field: 'code_input',
@@ -667,7 +743,7 @@ export default defineOperationApp({
 					{
 						rule: {
 							operation_type: {
-								_in: ['text_generation', 'image_generation', 'file_search', 'file_search_with_image', 'code_interpreter'],
+								_in: ['text_generation', 'image_generation', 'file_search', 'file_search_with_image', 'file_analysis', 'code_interpreter'],
 							},
 						},
 						hidden: false,
