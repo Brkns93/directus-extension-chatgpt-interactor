@@ -652,7 +652,12 @@ export default defineOperationApi<Options>({
 					if (file_base64_array) {
 						if (typeof file_base64_array === 'string') {
 							try {
-								parsedFileBase64ArrayForAnalysis = JSON.parse(file_base64_array);
+								// Unescape the string first to handle double-escaped characters
+								const unescapedString = (file_base64_array as string)
+									.replace(/\\"/g, '"')  // Replace \" with "
+									.replace(/\\\//g, '/') // Replace \/ with /
+									.replace(/\\\\/g, '\\'); // Replace \\ with \
+								parsedFileBase64ArrayForAnalysis = JSON.parse(unescapedString);
 							} catch (error) {
 								// If parsing fails, treat it as a single file
 								parsedFileBase64ArrayForAnalysis = [file_base64_array];
@@ -782,7 +787,12 @@ export default defineOperationApi<Options>({
 					if (file_base64_array) {
 						if (typeof file_base64_array === 'string') {
 							try {
-								parsedFileBase64Array = JSON.parse(file_base64_array);
+								// Unescape the string first to handle double-escaped characters
+								const unescapedString = (file_base64_array as string)
+									.replace(/\\"/g, '"')  // Replace \" with "
+									.replace(/\\\//g, '/') // Replace \/ with /
+									.replace(/\\\\/g, '\\'); // Replace \\ with \
+								parsedFileBase64Array = JSON.parse(unescapedString);
 							} catch (error) {
 								// If parsing fails, treat it as a single file
 								parsedFileBase64Array = [file_base64_array];
