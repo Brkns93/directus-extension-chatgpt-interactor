@@ -647,7 +647,22 @@ export default defineOperationApi<Options>({
 						throw new Error('File analysis prompt is required for file analysis');
 					}
 
-					if (!file_base64_array || file_base64_array.length === 0) {
+					// Handle file_base64_array when it's sent as a JSON string
+					let parsedFileBase64ArrayForAnalysis: string[] = [];
+					if (file_base64_array) {
+						if (typeof file_base64_array === 'string') {
+							try {
+								parsedFileBase64ArrayForAnalysis = JSON.parse(file_base64_array);
+							} catch (error) {
+								// If parsing fails, treat it as a single file
+								parsedFileBase64ArrayForAnalysis = [file_base64_array];
+							}
+						} else if (Array.isArray(file_base64_array)) {
+							parsedFileBase64ArrayForAnalysis = file_base64_array;
+						}
+					}
+
+					if (parsedFileBase64ArrayForAnalysis.length === 0) {
 						throw new Error('At least one file is required for file analysis');
 					}
 
@@ -671,8 +686,8 @@ export default defineOperationApi<Options>({
 					});
 
 					// Add file data directly as base64
-					for (let i = 0; i < file_base64_array.length; i++) {
-						const base64Data = file_base64_array[i];
+					for (let i = 0; i < parsedFileBase64ArrayForAnalysis.length; i++) {
+						const base64Data = parsedFileBase64ArrayForAnalysis[i];
 						
 						if (!base64Data) continue;
 						
@@ -751,7 +766,7 @@ export default defineOperationApi<Options>({
 							usage: fileAnalysisResponse.usage,
 							finish_reason: fileAnalysisResponse.status,
 							response_format: response_format,
-							processed_files_count: file_base64_array.length,
+							processed_files_count: parsedFileBase64ArrayForAnalysis.length,
 						},
 						response_id: fileAnalysisResponse.id,
 					};
@@ -760,6 +775,21 @@ export default defineOperationApi<Options>({
 				case 'file_analysis_with_vector_search':
 					if (!file_analysis_prompt) {
 						throw new Error('File analysis prompt is required for file analysis with vector search');
+					}
+
+					// Handle file_base64_array when it's sent as a JSON string
+					let parsedFileBase64Array: string[] = [];
+					if (file_base64_array) {
+						if (typeof file_base64_array === 'string') {
+							try {
+								parsedFileBase64Array = JSON.parse(file_base64_array);
+							} catch (error) {
+								// If parsing fails, treat it as a single file
+								parsedFileBase64Array = [file_base64_array];
+							}
+						} else if (Array.isArray(file_base64_array)) {
+							parsedFileBase64Array = file_base64_array;
+						}
 					}
 
 					// vector_store_ids is optional
@@ -780,9 +810,9 @@ export default defineOperationApi<Options>({
 					// Track uploaded file IDs for cleanup
 					const uploadedFileIds: string[] = [];
 
-					if (file_base64_array && file_base64_array.length > 0) {
-						for (let i = 0; i < file_base64_array.length; i++) {
-							const fileDataUrl = file_base64_array[i];
+					if (parsedFileBase64Array && parsedFileBase64Array.length > 0) {
+						for (let i = 0; i < parsedFileBase64Array.length; i++) {
+							const fileDataUrl = parsedFileBase64Array[i];
 							if (!fileDataUrl) continue;
 
 							if (fileDataUrl.startsWith('data:image/')) {
@@ -883,7 +913,7 @@ export default defineOperationApi<Options>({
 							usage: fileAnalysisVectorResponse.usage,
 							finish_reason: fileAnalysisVectorResponse.status,
 							response_format: response_format,
-							processed_files_count: file_base64_array ? file_base64_array.length : 0,
+							processed_files_count: parsedFileBase64Array.length,
 							vector_search_enabled: !!(vector_store_ids && vector_store_ids.length > 0),
 						},
 						response_id: fileAnalysisVectorResponse.id,
