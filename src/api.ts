@@ -906,14 +906,9 @@ export default defineOperationApi<Options>({
 					}
 					const fileAnalysisVectorResponse = await openai.responses.create(fileAnalysisVectorParams);
 
-					// Clean up uploaded files
-					for (const fileId of uploadedFileIds) {
-						try {
-							await openai.files.del(fileId);
-						} catch (error) {
-							console.warn(`Failed to delete file ${fileId}:`, error);
-						}
-					}
+					// Note: Files are not automatically deleted to allow for longer retention
+					// Files uploaded to OpenAI are automatically deleted after 30 days if not used
+					// You can manually delete them using: await openai.files.del(fileId)
 
 					result = {
 						success: true,
@@ -925,6 +920,7 @@ export default defineOperationApi<Options>({
 							response_format: response_format,
 							processed_files_count: parsedFileBase64Array.length,
 							vector_search_enabled: !!(vector_store_ids && vector_store_ids.length > 0),
+							uploaded_file_ids: uploadedFileIds, // Return the file IDs for potential later deletion
 						},
 						response_id: fileAnalysisVectorResponse.id,
 					};
